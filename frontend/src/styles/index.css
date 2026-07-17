@@ -1,0 +1,51 @@
+:root{
+  --container-max: 1280px;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.glass-card {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(99,102,241,0.1);
+}
+
+.glass-nav{
+  background: rgba(252,248,255,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.primary-glow{
+  box-shadow: 0 20px 30px -10px rgba(99,102,241,0.15);
+}
+
+.floating-label-group{position:relative}
+.floating-label-group input:focus ~ label,
+.floating-label-group input:not(:placeholder-shown) ~ label{
+  top:-10px;left:0;font-size:12px;color:#4648d4
+}
+.floating-label-group label{position:absolute;top:12px;left:0;transition:all .3s ease;pointer-events:none;color:#767586}
+
+.notion-input{border:none;border-bottom:1px solid #c7c4d7;background:transparent;width:100%;padding:12px 0;transition:border-color .3s ease,box-shadow .3s ease}
+.notion-input:focus{outline:none;border-bottom:2px solid #4648d4;box-shadow:none}
+
+@keyframes float{0%{transform:translateY(0px)}50%{transform:translateY(-10px)}100%{transform:translateY(0px)}}
+.animate-float{animation:float 6s ease-in-out infinite}
+
+.input-underline{border-bottom:2px solid #e4e1ed;transition:all .3s ease-out}
+.input-underline:focus{border-bottom-color:#4648d4;background:rgba(255,255,255,0.5);backdrop-filter:blur(10px);outline:none}
+.step-active{width:24px;background-color:#4648d4}
+.step-inactive{width:8px;background-color:#e4e1ed}
+
+/* Utility fallbacks for sizing tokens used in templates */
+.px-gutter{padding-left:var(--gutter);padding-right:var(--gutter)}
+.px-margin-mobile{padding-left:20px;padding-right:20px}
+
+/* Small resets */
+html,body,#root{height:100%}
