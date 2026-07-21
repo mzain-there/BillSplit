@@ -38,4 +38,5 @@ const settlementSchema=new Schema({
 
 },{timestamps:true})
 
-export const Settlement=mongoose.model("Settlement", settlementSchema)
+const Settlement=mongoose.model("Settlement", settlementSchema)
+export default Settlement;

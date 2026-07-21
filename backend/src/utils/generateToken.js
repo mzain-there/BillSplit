@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const generateAccessToken=(res, userId)=>{
+const generateAccessToken=(userId)=>{
     return jwt.sign(
         {userId},
         process.env.ACCESS_TOKEN_SECRET,
@@ -8,7 +8,7 @@ const generateAccessToken=(res, userId)=>{
     )
 }
 
-const generateRefreshToken=(res, userId)=>{
+const generateRefreshToken=(userId)=>{
      return jwt.sign(
         {userId},
         process.env.REFRESH_TOKEN_SECRET,
