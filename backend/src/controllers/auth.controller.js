@@ -4,6 +4,7 @@ import ApiResponse from "../utils/ApiResponse.js"
 import { asynchandler } from "../utils/asynchandler.js"
 import { generateTokens } from "../utils/generateToken.js"
 import jwt from "jsonwebtoken"
+import uploadToCloudinary from "../utils/uploadToCloudinary.js"
 
 // Cookie options
 const cookieOptions = {
@@ -32,8 +33,13 @@ const registerUser = asynchandler(async (req, res) => {
     throw new ApiError(409, "Email already registered")
   }
 
+  let avatarUrl = ""
+  if (req.file) {
+    avatarUrl = await uploadToCloudinary(req.file.buffer, "avatars")
+  }
+
   // Create user
-  const user = await User.create({ username, email, password })
+  const user = await User.create({ username, email, password, avatar: avatarUrl })
 
   // Fetch created user without sensitive fields
   const createdUser = await User.findById(user._id).select(
