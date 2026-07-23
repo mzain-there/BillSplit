@@ -10,7 +10,7 @@ const groupSchema = new Schema({
         type: String,
         required: true
     },
-    createdby: {
+    createdBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -21,7 +21,7 @@ const groupSchema = new Schema({
     },
     members: [
         {
-            name: {
+            user: {
                 type: Schema.Types.ObjectId,
                 ref: 'User'
             },

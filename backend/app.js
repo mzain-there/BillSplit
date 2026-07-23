@@ -3,6 +3,7 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import authRoutes from "./src/routes/auth.routes.js"
 import errorHandler from "./src/middlewares/error.middleware.js"
+import groupRoutes from "./src/routes/group.routes.js"
 
 const app = express()
 
@@ -16,6 +17,7 @@ app.use(cookieParser()) // parses cookies from request
 
 
 app.use("/api/auth", authRoutes)
+app.use("/api/groups", groupRoutes)
 
 app.get("/", (req, res) => {
   res.send("BillSplit API is running...")
