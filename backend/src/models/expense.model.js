@@ -1,4 +1,4 @@
-import mongoose, { Schema, models } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
 const expenseSchema = new Schema({
   title: {
@@ -9,15 +9,20 @@ const expenseSchema = new Schema({
     type: Number,
     required: [true, "Amount is required"]
   },
-  paidby: {
+  group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      required: true,
+  },
+  paidBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  paidto: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
+  splitType: {
+    type: String,
+    enum: ["equal", "custom", "percentage"],
+    default: "equal",
   },
   splits: [
     {

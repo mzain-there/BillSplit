@@ -30,10 +30,14 @@ export const calculateBalances = (expenses, currentUserId) => {
   const balances = {}
 
   expenses.forEach((expense) => {
-    const paidBy = expense.paidBy._id.toString()
+    if (!expense.paidBy) return
+    const paidBy = (expense.paidBy._id || expense.paidBy).toString()
+
+    if (!expense.splits || !Array.isArray(expense.splits)) return
 
     expense.splits.forEach((split) => {
-      const owedBy = split.user._id.toString()
+      if (!split.user) return
+      const owedBy = (split.user._id || split.user).toString()
 
       // Skip if same person
       if (paidBy === owedBy) return

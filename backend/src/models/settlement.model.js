@@ -1,4 +1,4 @@
-import mongoose, {models, Schema} from "mongoose";
+import mongoose, {model, Schema} from "mongoose";
 
 const settlementSchema=new Schema({
 

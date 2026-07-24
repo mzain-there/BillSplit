@@ -14,7 +14,7 @@ const createGroup = async (req, res, next) => {
       throw new ApiError(400, "Group name is required")
     }
 
-    // Upload group avatar if provided
+    
     let avatarUrl = ""
     if (req.file && req.file.buffer) {
       avatarUrl = await uploadToCloudinary(req.file.buffer, "groups")
@@ -164,7 +164,7 @@ const inviteMember = async (req, res, next) => {
     )
 
     return res.status(200).json(
-      new ApiResponse(200, updatedGroup, `${userToInvite.name} added to group successfully`)
+      new ApiResponse(200, updatedGroup, `${userToInvite.username} added to group successfully`)
     )
   } catch (error) {
     next(error)
