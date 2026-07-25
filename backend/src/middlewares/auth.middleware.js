@@ -4,17 +4,15 @@ import ApiError from "../utils/ApiError.js"
 
 const verifyJWT = async (req, res, next) => {
   try {
-    // Get access token from cookie
+    
     const token = req.cookies?.accessToken
 
     if (!token) {
       throw new ApiError(401, "Unauthorized — no token provided")
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
 
-    // Find user from token
     const user = await User.findById(decoded.userId).select(
       "-password -refreshToken"
     )
@@ -23,7 +21,6 @@ const verifyJWT = async (req, res, next) => {
       throw new ApiError(401, "Invalid token — user not found")
     }
 
-    // Attach user to request object
     req.user = user
     next()
 
