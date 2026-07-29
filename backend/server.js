@@ -20,5 +20,6 @@ connectCloudinary()
 
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+  console.log(`✅ Server ready on http://localhost:${PORT}`)
+  console.log(`🌐 Frontend: http://localhost:5173`)
 })
