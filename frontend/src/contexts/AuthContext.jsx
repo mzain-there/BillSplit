@@ -1,25 +1,62 @@
-import React, { createContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import axiosInstance from '../api/axios'
 
-export const AuthContext = createContext({
-  token: null,
-  login: ()=>{},
-  logout: ()=>{}
-})
+// ── Create Context ────────────────────────────────────
+const AuthContext = createContext()
 
-export function AuthProvider({children}){
-  const [token, setToken] = useState(()=> localStorage.getItem('token'))
+// ── Provider ──────────────────────────────────────────
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(()=>{
-    if(token) localStorage.setItem('token', token)
-    else localStorage.removeItem('token')
-  },[token])
+  // Check if user is already logged in on app load
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const res = await axiosInstance.get('/auth/me')
+        setUser(res.data.data)
+      } catch (error) {
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    getUser()
+  }, [])
 
-  const login = (t)=> setToken(t)
-  const logout = ()=> setToken(null)
+  // Register
+  const register = async (formData) => {
+    const res = await axiosInstance.post('/auth/register', formData)
+    setUser(res.data.data)
+    return res.data
+  }
+
+  // Login
+  const login = async (email, password) => {
+    const res = await axiosInstance.post('/auth/login', { email, password })
+    setUser(res.data.data)
+    return res.data
+  }
+
+  // Logout
+  const logout = async () => {
+    try {
+      await axiosInstance.post('/auth/logout')
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setUser(null)
+    }
+  }
 
   return (
-    <AuthContext.Provider value={{token, login, logout}}>
+    <AuthContext.Provider value={{ user, setUser, loading, register, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
 }
+
+// ── Custom Hook ───────────────────────────────────────
+export const useAuth = () => useContext(AuthContext)
+
+export default AuthContext

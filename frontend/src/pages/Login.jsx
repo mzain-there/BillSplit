@@ -1,26 +1,48 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
-export default function Login(){
-  useEffect(()=>{
+export default function Login() {
+  const { login } = useAuth()
+  const navigate = useNavigate()
+
+  // ── State ────────────────────────────────────────────
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // ── Mouse effect — untouched ─────────────────────────
+  useEffect(() => {
     const card = document.querySelector('.glass-card.primary-glow')
-    if(!card) return
+    if (!card) return
     const onMove = (e) => {
       const rect = card.getBoundingClientRect()
       const x = e.clientX - rect.left
       const y = e.clientY - rect.top
       if (x > 0 && x < rect.width && y > 0 && y < rect.height) {
-        card.style.boxShadow = `${(x - rect.width/2)/20}px ${(y - rect.height/2)/20}px 30px -10px rgba(99, 102, 241, 0.2)`
+        card.style.boxShadow = `${(x - rect.width / 2) / 20}px ${(y - rect.height / 2) / 20}px 30px -10px rgba(99, 102, 241, 0.2)`
       } else {
         card.style.boxShadow = ''
       }
     }
     window.addEventListener('mousemove', onMove)
-    return ()=> window.removeEventListener('mousemove', onMove)
-  },[])
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [])
 
-  const handleSubmit = (e) => {
+  // ── Submit Handler ───────────────────────────────────
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: wire to auth API
+    setError('')
+    setLoading(true)
+    try {
+      await login(email, password)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -39,10 +61,10 @@ export default function Login(){
         <div className="w-full md:w-1/2 flex flex-col justify-center py-12 md:py-0 pr-0 md:pr-16 relative overflow-hidden">
           <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
           <div className="relative z-10">
-            <h1 className="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-on-surface mb-8 max-w-lg leading-tight">Split bills. <br/><span className="text-primary italic">Not friendships.</span></h1>
+            <h1 className="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-on-surface mb-8 max-w-lg leading-tight">Split bills. <br /><span className="text-primary italic">Not friendships.</span></h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant max-w-md mb-12">Effortless expense sharing with high-end financial transparency. Designed for the modern era of collaborative living.</p>
             <div className="relative w-full aspect-video rounded-3xl overflow-hidden glass-card p-4 animate-float group">
-              <div className="w-full h-full bg-cover bg-center rounded-2xl group-hover:scale-105 transition-transform duration-700 ease-out" style={{backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCWV4l7A9njyVkB3Dpq8HIuvzPvUnjp1m-ONKS7VnzUs6NBWcAR8we6ScY-4fldHLmLzlBiDUHXO3mY-IrToZiq_ougdHCCxXhw6pb97p1Rd1BImlltPo4Q4PIqIMJ8_8gK24gt2-ACNmFzSjmzDmnvqTb_qwxtChFbOakdEtj-is2AeT3AFM5rHUtaEb30tPcsmO75SgVlQwMcl5-wUo5aD5V8MM9MEsQNAYrYYAoP_yYwtCekLKWY7NTeHH6UBN1w8mYiy76Wnxyv')`}} data-alt="abstract illustration"></div>
+              <div className="w-full h-full bg-cover bg-center rounded-2xl group-hover:scale-105 transition-transform duration-700 ease-out" style={{ backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCWV4l7A9njyVkB3Dpq8HIuvzPvUnjp1m-ONKS7VnzUs6NBWcAR8we6ScY-4fldHLmLzlBiDUHXO3mY-IrToZiq_ougdHCCxXhw6pb97p1Rd1BImlltPo4Q4PIqIMJ8_8gK24gt2-ACNmFzSjmzDmnvqTb_qwxtChFbOakdEtj-is2AeT3AFM5rHUtaEb30tPcsmO75SgVlQwMcl5-wUo5aD5V8MM9MEsQNAYrYYAoP_yYwtCekLKWY7NTeHH6UBN1w8mYiy76Wnxyv')` }} data-alt="abstract illustration"></div>
             </div>
           </div>
         </div>
@@ -53,13 +75,39 @@ export default function Login(){
               <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Welcome Back</h2>
               <p className="font-body-md text-on-surface-variant">Enter your credentials to continue splitting.</p>
             </div>
+
+            {/* ── Error Message ── */}
+            {error && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 font-body-md text-sm">
+                {error}
+              </div>
+            )}
+
             <form className="space-y-8" onSubmit={handleSubmit}>
               <div className="floating-label-group">
-                <input autoComplete="email" className="notion-input font-body-md text-on-surface" id="email" placeholder=" " type="email" />
+                <input
+                  autoComplete="email"
+                  className="notion-input font-body-md text-on-surface"
+                  id="email"
+                  placeholder=" "
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
                 <label className="font-body-md" htmlFor="email">Email Address</label>
               </div>
               <div className="floating-label-group">
-                <input autoComplete="current-password" className="notion-input font-body-md text-on-surface" id="password" placeholder=" " type="password" />
+                <input
+                  autoComplete="current-password"
+                  className="notion-input font-body-md text-on-surface"
+                  id="password"
+                  placeholder=" "
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
                 <label className="font-body-md" htmlFor="password">Password</label>
               </div>
               <div className="flex items-center justify-between font-label-sm text-label-sm">
@@ -70,9 +118,13 @@ export default function Login(){
                 <a className="text-primary hover:underline transition-all" href="#">Forgot Password?</a>
               </div>
               <div className="space-y-4 pt-4">
-                <button className="w-full bg-primary text-on-primary font-label-md py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow flex items-center justify-center gap-2" type="submit">
-                  <span>Sign In</span>
-                  <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                <button
+                  className="w-full bg-primary text-on-primary font-label-md py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow flex items-center justify-center gap-2"
+                  type="submit"
+                  disabled={loading}
+                >
+                  <span>{loading ? 'Signing in...' : 'Sign In'}</span>
+                  {!loading && <span className="material-symbols-outlined text-[20px]">arrow_forward</span>}
                 </button>
                 <div className="relative flex py-4 items-center">
                   <div className="flex-grow border-t border-outline-variant"></div>
@@ -90,7 +142,12 @@ export default function Login(){
                 </button>
               </div>
             </form>
-            <p className="mt-8 text-center font-body-md text-on-surface-variant">Don't have an account? <a className="text-primary font-bold hover:underline" href="#">Sign up for free</a></p>
+            <p className="mt-8 text-center font-body-md text-on-surface-variant">
+              Don't have an account?{' '}
+              <Link className="text-primary font-bold hover:underline" to="/register">
+                Sign up for free
+              </Link>
+            </p>
           </div>
         </div>
       </main>
