@@ -91,7 +91,7 @@ const loginUser = asynchandler(async (req, res) => {
     .status(200)
     .cookie("accessToken", accessToken, {
       ...cookieOptions,
-      maxAge: 15 * 60 * 1000
+      maxAge: 1 * 60 * 60 * 1000
     })
     .cookie("refreshToken", refreshToken, {
       ...cookieOptions,
@@ -151,10 +151,35 @@ const getCurrentUser = asynchandler(async (req, res) => {
     .json(new ApiResponse(200, req.user, "User fetched successfully"))
 })
 
+// ── Update Profile ────────────────────────────────────
+const updateProfile = async (req, res, next) => {
+  try {
+    const { username, email } = req.body
+
+    let avatarUrl = req.user.avatar
+    if (req.file && req.file.buffer) {
+      avatarUrl = await uploadToCloudinary(req.file.buffer, "avatars")
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { username, email, avatar: avatarUrl },
+      { new: true }
+    ).select("-password -refreshToken")
+
+    return res.status(200).json(
+      new ApiResponse(200, updatedUser, "Profile updated successfully")
+    )
+  } catch (error) {
+    next(error)
+  }
+  }
+
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
-  getCurrentUser
+  getCurrentUser,
+  updateProfile
 }
