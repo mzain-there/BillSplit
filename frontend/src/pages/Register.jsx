@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Register() {
@@ -15,22 +15,6 @@ export default function Register() {
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => {
-      const nav = document.querySelector('nav')
-      if (!nav) return
-      if (window.scrollY > 20) {
-        nav.classList.add('bg-surface/95')
-        nav.classList.remove('bg-surface/85')
-      } else {
-        nav.classList.add('bg-surface/85')
-        nav.classList.remove('bg-surface/95')
-      }
-    }
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -52,7 +36,6 @@ export default function Register() {
     setError('')
     setLoading(true)
 
-    // Validation
     if (!formData.username || !formData.email || !formData.password) {
       setError('Please fill in all fields')
       setLoading(false)
@@ -66,7 +49,6 @@ export default function Register() {
     }
 
     try {
-      // ✅ Real API call
       const data = new FormData()
       data.append('username', formData.username)
       data.append('email', formData.email)
@@ -75,12 +57,11 @@ export default function Register() {
 
       await register(data)
 
-      // Show success overlay then redirect
       const overlay = document.getElementById('successOverlay')
       if (overlay) {
         overlay.classList.remove('opacity-0', 'pointer-events-none')
         overlay.classList.add('opacity-100')
-        setTimeout(() => navigate('/dashboard'), 3000)
+        setTimeout(() => navigate('/dashboard'), 2500)
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
@@ -90,132 +71,42 @@ export default function Register() {
   }
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen selection:bg-primary-fixed selection:text-on-primary-fixed">
-      <nav className="sticky top-0 w-full z-50 bg-surface/85 backdrop-blur-lg border-b border-primary/10 shadow-[0_20px_30px_rgba(99,102,241,0.15)]">
-        <div className="flex justify-between items-center px-gutter py-4 max-w-container-max mx-auto">
-          <div className="font-headline-md text-headline-md font-bold text-primary tracking-tight cursor-pointer" onClick={() => navigate('/dashboard')}>BillSplit</div>
-          <div className="hidden md:flex items-center space-x-8">
-            <button type="button" onClick={() => navigate('/login')} className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors bg-none border-none cursor-pointer">Log In</button>
-            <button type="button" className="font-body-md text-body-md text-primary font-bold border-b-2 border-primary pb-1 bg-none border-none cursor-pointer">Sign Up</button>
+    <div className="bg-background text-on-background min-h-screen flex flex-col justify-between font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
+      
+      {/* ── Main Full-Spacious Centered Viewport Section (No Navbar) ── */}
+      <main className="flex-grow flex items-center justify-center w-full max-w-container-max mx-auto px-6 py-12 md:py-16">
+        <div className="w-full max-w-lg glass-card rounded-[36px] p-8 sm:p-10 md:p-12 primary-glow border-2 border-outline-variant/30 shadow-2xl">
+          
+          <div className="text-center mb-8 space-y-2">
+            <h2 className="font-headline-lg text-3xl sm:text-4xl font-bold text-on-surface tracking-tight">Create Account</h2>
+            <p className="font-body-md text-base text-on-surface-variant font-medium">Start splitting expenses effortlessly today.</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <button className="material-symbols-outlined text-primary text-2xl hover:scale-[1.02] transition-transform">notifications</button>
-            <div className="w-10 h-10 rounded-full border-2 border-primary overflow-hidden">
-              <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2XejcN_JdZlAQ90E976skNGJRODu605zC2DX3Du16t8x4FmP9KLCNJ0AetC-vXtbinL6n76no8lRNCPVzbI8ZCaslm_8mU0r6r1QNejXlHiK-f5qzzNUosf5D1FPq6q4p1Pnm_1TOrbIiS0NJUXgYXMSs7YrRA47IZtCG1nzrkD-2Q-5rD1QEzl04Isju1qPCXM60WIKtrZjwrD6-imC3n-0oYPxMx-7PyX5Yz1AJ91r48JFFXGN4RXQ951z54e2yqi4EFTxPCPaW" alt="avatar" />
-            </div>
-          </div>
-        </div>
-      </nav>
 
-      <main className="max-w-container-max mx-auto px-gutter py-section-gap">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-7 order-2 lg:order-1">
-            <div className="glass-card rounded-xl p-8 md:p-12 shadow-sm">
-              <div className="flex items-center space-x-3 mb-12">
-                <div className="h-2 rounded-full step-active transition-all duration-300"></div>
-                <div className="h-2 rounded-full step-inactive"></div>
-                <div className="h-2 rounded-full step-inactive"></div>
-                <span className="ml-4 font-label-sm text-label-sm text-primary uppercase tracking-widest">Step 01: Identity</span>
-              </div>
-              <form className="space-y-10" onSubmit={onSubmit}>
-                {error && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 font-body-md text-sm">
-                    {error}
+          {error && (
+            <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-500 font-body-md text-sm font-semibold text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={onSubmit} className="space-y-6 text-left">
+            
+            {/* ── Profile Picture Upload Directly Above Inputs ── */}
+            <div className="flex flex-col items-center justify-center pb-2">
+              <div
+                className="relative group cursor-pointer w-28 h-28 rounded-full border-2 border-dashed border-outline-variant/60 hover:border-primary group-hover:bg-primary-container/10 transition-all duration-300 flex flex-col items-center justify-center p-1 overflow-hidden shadow-md bg-surface-container-low/70"
+                onClick={() => document.getElementById('avatarInput').click()}
+              >
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <div className="flex flex-col items-center text-outline group-hover:text-primary transition-colors">
+                    <span className="material-symbols-outlined text-4xl mb-0.5">add_a_photo</span>
+                    <span className="font-label-sm text-[11px] uppercase font-bold tracking-wider">Photo</span>
                   </div>
                 )}
-                <div className="group">
-                  <label className="block font-label-md text-label-md text-outline mb-2 group-focus-within:text-primary transition-colors">Full Name</label>
-                  <input
-                    className="w-full bg-transparent py-4 text-headline-md font-headline-md input-underline"
-                    placeholder="Cameron Williamson"
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="group">
-                  <label className="block font-label-md text-label-md text-outline mb-2 group-focus-within:text-primary transition-colors">Email Address</label>
-                  <input
-                    className="w-full bg-transparent py-4 text-headline-md font-headline-md input-underline"
-                    placeholder="cameron.w@billings.io"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="group">
-                  <label className="block font-label-md text-label-md text-outline mb-2 group-focus-within:text-primary transition-colors">Security Password</label>
-                  <input
-                    className="w-full bg-transparent py-4 text-headline-md font-headline-md input-underline"
-                    placeholder="••••••••••••"
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="pt-6 flex flex-col md:flex-row items-center gap-6">
-                  <button
-                    className="w-full md:w-auto px-12 py-4 bg-primary text-on-primary font-bold rounded-xl primary-glow transition-all duration-300 ease-out active:scale-95 text-body-lg"
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? 'Creating Account...' : 'Create Account'}
-                  </button>
-                  <p className="text-on-surface-variant font-body-md">
-                    Already split with us?{' '}
-                    <button
-                      type="button"
-                      onClick={() => navigate('/login')}
-                      className="text-primary font-bold border-b border-primary/30 hover:border-primary transition-all bg-none border-none cursor-pointer"
-                    >
-                      Sign in
-                    </button>
-                  </p>
-                </div>
-              </form>
-            </div>
-            <div className="mt-12 flex justify-end">
-              <div className="glass-card p-6 rounded-xl flex items-center space-x-4 max-w-xs transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                <span className="material-symbols-outlined text-primary-container text-4xl" style={{ fontVariationSettings: `"FILL" 1` }}>verified_user</span>
-                <div>
-                  <p className="font-label-md text-label-md text-on-surface font-bold">Secure Vault</p>
-                  <p className="font-label-sm text-label-sm text-outline">Bank-grade encryption for all your data.</p>
-                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 order-1 lg:order-2 space-y-12 text-center lg:text-left relative">
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary-container/10 rounded-full blur-[100px] -z-10"></div>
-            <h1 className="font-display-xl-mobile lg:font-display-xl text-display-xl-mobile lg:text-display-xl text-on-surface tracking-tighter">
-              Start <span className="text-primary">Splitting</span> Smarter.
-            </h1>
-            <div className="flex flex-col items-center lg:items-start space-y-6">
-
-              {/* ✅ Avatar upload with preview */}
-              <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatarInput').click()}>
-                <div className="w-48 h-48 md:w-56 md:h-56 rounded-full border-4 border-dashed border-outline-variant group-hover:border-primary group-hover:bg-primary-container/5 transition-all duration-500 flex flex-col items-center justify-center p-2 relative overflow-hidden">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-outline group-hover:text-primary text-5xl mb-2 transition-colors">add_a_photo</span>
-                      <span className="font-label-md text-label-md text-outline group-hover:text-primary transition-colors">Upload Avatar</span>
-                    </>
-                  )}
-                  <div className="absolute inset-0 opacity-10 pointer-events-none">
-                    <div className="w-full h-full bg-[radial-gradient(circle,rgba(70,72,212,0.4)_0%,transparent_70%)]"></div>
-                  </div>
-                </div>
-                <div className="absolute bottom-4 right-4 w-12 h-12 bg-secondary-fixed text-on-secondary-fixed rounded-full flex items-center justify-center shadow-lg border-4 border-surface group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: `"FILL" 1` }}>face</span>
-                </div>
-              </div>
-
-              {/* Hidden file input */}
+              <p className="font-body-md text-sm text-on-surface-variant font-medium mt-2.5">Upload profile picture</p>
+              
               <input
                 id="avatarInput"
                 type="file"
@@ -223,23 +114,102 @@ export default function Register() {
                 className="hidden"
                 onChange={handleAvatarChange}
               />
-
-              <p className="font-body-lg text-body-lg text-on-surface-variant max-w-sm">
-                A profile picture helps your friends find you in shared groups faster.
-              </p>
             </div>
-          </div>
+
+            {/* ── Full Name Field Left-Aligned ── */}
+            <div className="flex flex-col text-left">
+              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="username">
+                Full Name
+              </label>
+              <input
+                id="username"
+                type="text"
+                name="username"
+                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all placeholder:text-outline-variant/60"
+                placeholder="Cameron Williamson"
+                value={formData.username}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* ── Email Address Field Left-Aligned ── */}
+            <div className="flex flex-col text-left">
+              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="email">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all placeholder:text-outline-variant/60"
+                placeholder="cameron@billings.io"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* ── Security Password Field Left-Aligned ── */}
+            <div className="flex flex-col text-left">
+              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="password">
+                Security Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all placeholder:text-outline-variant/60"
+                placeholder="••••••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="pt-3">
+              <button
+                className="w-full bg-primary text-on-primary font-bold py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow flex items-center justify-center gap-2 text-lg shadow-xl shadow-primary/30"
+                type="submit"
+                disabled={loading}
+              >
+                <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
+                {!loading && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
+              </button>
+            </div>
+          </form>
+
+          <p className="mt-10 text-center font-body-md text-base text-on-surface-variant font-medium">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="text-primary font-bold hover:underline transition-all"
+            >
+              Sign in
+            </Link>
+          </p>
+
         </div>
       </main>
 
-      {/* Success Overlay — untouched */}
+      {/* ── Footer ── */}
+      <footer className="w-full py-5 px-6 max-w-container-max mx-auto border-t border-outline-variant/10 text-xs text-outline flex justify-between items-center">
+        <p>© 2024 BillSplit Inc.</p>
+        <div className="flex gap-6">
+          <a className="hover:text-primary transition-colors font-medium" href="#">Privacy Policy</a>
+          <a className="hover:text-primary transition-colors font-medium" href="#">Terms of Service</a>
+          <a className="hover:text-primary transition-colors font-medium" href="#">Security</a>
+        </div>
+      </footer>
+
+      {/* Success Overlay */}
       <div className="fixed inset-0 bg-surface/90 backdrop-blur-xl z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500" id="successOverlay">
-        <div className="text-center space-y-8 max-w-md p-8">
-          <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mx-auto animate-bounce">
-            <span className="material-symbols-outlined text-white text-5xl" style={{ fontVariationSettings: `"FILL" 1` }}>check_circle</span>
+        <div className="text-center space-y-6 max-w-xs p-8 glass-card rounded-[32px] border border-primary/20">
+          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto animate-bounce">
+            <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: `"FILL" 1` }}>check_circle</span>
           </div>
-          <h2 className="font-headline-lg text-headline-lg text-on-surface">Welcome to BillSplit</h2>
-          <p className="font-body-lg text-body-lg text-on-surface-variant">Redirecting to your personalized dashboard...</p>
+          <h2 className="font-headline-lg text-xl text-on-surface font-bold">Welcome to BillSplit</h2>
+          <p className="font-body-md text-sm text-on-surface-variant">Redirecting to your dashboard...</p>
         </div>
       </div>
     </div>

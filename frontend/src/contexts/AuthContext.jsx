@@ -49,8 +49,30 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Deactivate Account Temporarily
+  const deactivateAccount = async () => {
+    try {
+      const res = await axiosInstance.post('/auth/deactivate-account')
+      setUser(null)
+      return res.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Delete Account Request
+  const deleteAccount = async (confirmationText) => {
+    try {
+      const res = await axiosInstance.post('/auth/delete-account', { confirmationText })
+      setUser(null)
+      return res.data
+    } catch (error) {
+      throw error
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, register, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, register, login, logout, deactivateAccount, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )

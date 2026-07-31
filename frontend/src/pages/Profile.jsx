@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import axiosInstance from '../api/axios'
 
 export default function Profile() {
-  const { user, setUser, logout } = useAuth()
+  const { user, setUser, logout, deactivateAccount, deleteAccount } = useAuth()
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
@@ -17,14 +17,26 @@ export default function Profile() {
   const [groupCount, setGroupCount] = useState(0)
   const [expenseCount, setExpenseCount] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [passwordLoading, setPasswordLoading] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: ''
+  })
+
+  // Modal states for Danger Zone actions
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteInputText, setDeleteInputText] = useState('')
+  const [modalError, setModalError] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
 
   // Load user data
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.username || '',
+        username: user.username || '',
         email: user.email || '',
       })
       setAvatarPreview(user.avatar || null)
@@ -89,6 +101,10 @@ export default function Profile() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  const handlePasswordChange = (e) => {
+    setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value })
+  }
+
   const handleAvatarChange = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -105,7 +121,7 @@ export default function Profile() {
     setSuccess('')
     try {
       const data = new FormData()
-      data.append('name', formData.username)
+      data.append('username', formData.username)
       data.append('email', formData.email)
       if (avatar) data.append('avatar', avatar)
 
@@ -121,10 +137,68 @@ export default function Profile() {
     }
   }
 
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault()
+    setPasswordLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      await axiosInstance.put('/auth/change-password', passwordForm)
+      setSuccess('Password changed successfully!')
+      setPasswordForm({ currentPassword: '', newPassword: '' })
+    } catch (err) {
+      setError(err.response?.data?.message || 'Password change failed')
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
+
   // Logout
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  // Handle Deactivate Confirm
+  const handleDeactivateConfirm = async () => {
+    setActionLoading(true)
+    setModalError('')
+    try {
+      const res = await deactivateAccount()
+      setShowDeactivateModal(false)
+      navigate('/login', {
+        state: { noticeMessage: res.message || 'Your account has been temporarily deactivated.' }
+      })
+    } catch (err) {
+      setModalError(err.response?.data?.message || 'Failed to deactivate account')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle Delete Confirm
+  const handleDeleteConfirm = async (e) => {
+    e.preventDefault()
+    if (deleteInputText.trim().toLowerCase() !== 'delete') {
+      setModalError("Please type 'delete' to confirm.")
+      return
+    }
+    setActionLoading(true)
+    setModalError('')
+    try {
+      const res = await deleteAccount(deleteInputText)
+      setShowDeleteModal(false)
+      setDeleteInputText('')
+      navigate('/login', {
+        state: {
+          noticeMessage: res.message || 'Your account is temporary deactivated and deleted after 30 days.'
+        }
+      })
+    } catch (err) {
+      setModalError(err.response?.data?.message || 'Failed to request account deletion')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   return (
@@ -221,7 +295,7 @@ export default function Profile() {
                   <input
                     className="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md transition-all focus:bg-white"
                     type="text"
-                    name="name"
+                    name="username"
                     value={formData.username}
                     onChange={handleChange}
                   />
@@ -253,19 +327,39 @@ export default function Profile() {
               <h2 className="font-headline-md text-headline-md flex items-center gap-3 border-b border-outline-variant/30 pb-6">
                 <span className="material-symbols-outlined text-primary">lock</span>Security
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-gutter gap-y-6">
+              <form className="grid grid-cols-1 md:grid-cols-2 gap-x-gutter gap-y-6" onSubmit={handlePasswordSubmit}>
                 <div className="space-y-2">
                   <label className="text-label-md font-semibold text-on-surface-variant px-1">Current Password</label>
-                  <input className="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md transition-all focus:bg-white" placeholder="••••••••" type="password" />
+                  <input
+                    className="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md transition-all focus:bg-white"
+                    placeholder="••••••••"
+                    type="password"
+                    name="currentPassword"
+                    value={passwordForm.currentPassword}
+                    onChange={handlePasswordChange}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-label-md font-semibold text-on-surface-variant px-1">New Password</label>
-                  <input className="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md transition-all focus:bg-white" placeholder="••••••••" type="password" />
+                  <input
+                    className="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md transition-all focus:bg-white"
+                    placeholder="••••••••"
+                    type="password"
+                    name="newPassword"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordChange}
+                  />
                 </div>
                 <div className="md:col-span-2">
-                  <button className="text-primary font-bold hover:underline decoration-2 underline-offset-4 transition-all">Change Password</button>
+                  <button
+                    type="submit"
+                    className="text-primary font-bold hover:underline decoration-2 underline-offset-4 transition-all"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading ? 'Changing...' : 'Change Password'}
+                  </button>
                 </div>
-              </div>
+              </form>
             </div>
 
             {/* Notifications — design untouched */}
@@ -304,19 +398,36 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Danger Zone — design untouched */}
+            {/* Danger Zone */}
             <div className="bg-error-container/20 rounded-xl p-8 md:p-10 border-2 border-error/10 space-y-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <div>
                 <h2 className="font-headline-md text-headline-md text-error flex items-center gap-3 mb-2">
                   <span className="material-symbols-outlined">heart_broken</span>Danger Zone
                 </h2>
-                <p className="text-body-md text-on-surface-variant">Once you delete your account, there is no going back. Please be certain.</p>
+                <p className="text-body-md text-on-surface-variant">Once you request account deletion, your account is temporarily deactivated and permanently deleted after 30 days. You can also temporarily deactivate your account anytime.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 items-center">
-                <button className="bg-error text-on-error px-8 py-4 rounded-lg font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteInputText('')
+                    setModalError('')
+                    setShowDeleteModal(true)
+                  }}
+                  className="bg-error text-on-error px-8 py-4 rounded-lg font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[20px]">delete_forever</span>
                   Delete Account
                 </button>
-                <button className="text-on-surface-variant font-bold px-8 py-4 rounded-lg hover:bg-surface-container transition-all w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalError('')
+                    setShowDeactivateModal(true)
+                  }}
+                  className="text-on-surface-variant font-bold px-8 py-4 rounded-lg border border-outline-variant/40 hover:bg-surface-container transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[20px]">power_settings_new</span>
                   Deactivate Temporary
                 </button>
               </div>
@@ -324,6 +435,120 @@ export default function Profile() {
           </section>
         </div>
       </main>
+
+      {/* ── Temporary Deactivation Modal ── */}
+      {showDeactivateModal && (
+        <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-950/95 max-w-md w-full rounded-2xl p-6 md:p-8 shadow-2xl space-y-6 border border-white/20 text-white backdrop-blur-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-red-500">
+              <span className="material-symbols-outlined text-3xl">power_settings_new</span>
+              <h3 className="font-headline-md text-xl font-bold text-white">Deactivate Account</h3>
+            </div>
+            
+            {/* White Card */}
+            <div className="p-4 rounded-xl bg-white/20 border border-white/30 backdrop-blur-md text-white text-sm leading-relaxed space-y-3">
+              <p className="text-white font-semibold">
+                Are you sure you want to temporarily deactivate your account? Your profile will be paused and you will be logged out.
+              </p>
+              <div className="p-2.5 rounded-lg bg-red-500/25 border border-red-400/40 text-white text-xs font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm text-red-300">info</span>
+                <span>You can reactivate anytime simply by logging back in.</span>
+              </div>
+            </div>
+
+            {modalError && (
+              <div className="p-3 rounded-lg bg-red-500/25 border border-red-400/40 text-white text-xs font-semibold">
+                {modalError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => setShowDeactivateModal(false)}
+                className="px-5 py-2.5 rounded-xl text-white bg-white/20 hover:bg-white/30 transition-all text-sm font-semibold border border-white/30"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleDeactivateConfirm}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold active:scale-95 transition-all text-sm shadow-lg shadow-red-600/30 flex items-center gap-2"
+              >
+                {actionLoading ? 'Deactivating...' : 'Confirm Deactivation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Account Deletion Modal ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-950/95 max-w-md w-full rounded-2xl p-6 md:p-8 shadow-2xl space-y-6 border border-red-500/50 text-white backdrop-blur-2xl animate-in zoom-in-95 duration-200 shadow-red-950/50">
+            <div className="flex items-center gap-3 text-red-500">
+              <span className="material-symbols-outlined text-3xl">delete_forever</span>
+              <h3 className="font-headline-md text-xl font-bold text-white">Delete Account</h3>
+            </div>
+
+            {/* White Card Container */}
+            <div className="p-4 rounded-xl bg-white/20 border border-white/30 backdrop-blur-md text-white text-xs leading-relaxed space-y-2">
+              <p className="font-bold text-red-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">warning</span> Danger Zone Notice:
+              </p>
+              <p className="text-white text-sm">
+                Your account will be <strong className="text-red-300 underline">temporarily deactivated</strong> immediately and permanently deleted after <strong className="text-red-300">30 days</strong>.
+              </p>
+              <p className="text-white/90 text-[11px] pt-1 border-t border-white/20">
+                Logging back in within the 30-day grace period will automatically cancel deletion and reactivate your account.
+              </p>
+            </div>
+
+            <form onSubmit={handleDeleteConfirm} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-white mb-2">
+                  To confirm deletion, please type <span className="font-mono font-bold text-white bg-red-600/60 border border-red-400 px-1.5 py-0.5 rounded uppercase">delete</span> below:
+                </label>
+                <input
+                  type="text"
+                  value={deleteInputText}
+                  onChange={(e) => setDeleteInputText(e.target.value)}
+                  placeholder="Type delete to confirm"
+                  className="w-full bg-white/20 border border-white/30 focus:border-red-500 text-white placeholder:text-white/60 rounded-xl p-3 text-sm font-mono outline-none transition-all focus:ring-1 focus:ring-red-500"
+                  autoFocus
+                />
+              </div>
+
+              {modalError && (
+                <div className="p-3 rounded-lg bg-red-500/25 border border-red-400/40 text-white text-xs font-semibold">
+                  {modalError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-5 py-2.5 rounded-xl text-white bg-white/20 hover:bg-white/30 transition-all text-sm font-semibold border border-white/30"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading || deleteInputText.trim().toLowerCase() !== 'delete'}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all text-sm shadow-lg shadow-red-600/40 flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">delete_forever</span>
+                  {actionLoading ? 'Processing...' : 'Delete Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
