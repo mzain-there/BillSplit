@@ -32,7 +32,27 @@ const userSchema = new Schema({
                 type: Schema.Types.ObjectId,
                 ref: "Group"
             }
-        ]
+        ],
+    isDeactivated: {
+        type: Boolean,
+        default: false
+    },
+    isScheduledForDeletion: {
+        type: Boolean,
+        default: false
+    },
+    deletionRequestedAt: {
+        type: Date,
+        default: null
+    },
+    scheduledDeletionDate: {
+        type: Date,
+        default: null
+    },
+    refreshToken: {
+        type: String,
+        default: null
+    }
 }, { timestamps: true })
 
 userSchema.pre("save", async function () {

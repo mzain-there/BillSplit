@@ -5,7 +5,10 @@ import {
   logoutUser,
   refreshAccessToken,
   getCurrentUser,
-   updateProfile 
+  updateProfile,
+  changePassword,
+  deactivateAccount,
+  requestDeleteAccount
 } from "../controllers/auth.controller.js"
 import verifyJWT from "../middlewares/auth.middleware.js"
 import upload from "../middlewares/multer.middleware.js"
@@ -23,7 +26,10 @@ router.get("/me", verifyJWT, getCurrentUser)
 
 // Update Profile
 router.put("/update-profile", verifyJWT, upload.single("avatar"), updateProfile)
+router.put("/change-password", verifyJWT, changePassword)
 
-
+// Deactivate & Delete Account
+router.post("/deactivate-account", verifyJWT, deactivateAccount)
+router.post("/delete-account", verifyJWT, requestDeleteAccount)
 
 export default router

@@ -21,6 +21,11 @@ const verifyJWT = async (req, res, next) => {
       throw new ApiError(401, "Invalid token — user not found")
     }
 
+    if (user.isScheduledForDeletion && user.scheduledDeletionDate && new Date() >= user.scheduledDeletionDate) {
+      await User.findByIdAndDelete(user._id)
+      throw new ApiError(401, "Account has been permanently deleted as 30-day limit reached.")
+    }
+
     req.user = user
     next()
 
