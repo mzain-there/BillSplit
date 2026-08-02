@@ -4,6 +4,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import GroupPage from './pages/GroupPage'
+import Groups from './pages/Groups'
+import Expenses from './pages/Expenses'
 import Profile from './pages/Profile'
 import Notifications from './pages/Notifications'
 import { useAuth } from './contexts/AuthContext'
@@ -35,7 +37,10 @@ export default function App() {
 
       {/* Protected routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+      <Route path="/groups/create" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
       <Route path="/groups/:id" element={<ProtectedRoute><GroupPage /></ProtectedRoute>} />
+      <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 

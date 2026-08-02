@@ -47,7 +47,8 @@ export default function Navbar() {
         {/* ── Nav Links ── */}
         <div className="hidden md:flex items-center gap-8">
           <Link to="/dashboard" className={navLinkClass('/dashboard')}>Dashboard</Link>
-          <Link to="/groups/1" className={navLinkClass('/groups')}>Groups</Link>
+          <Link to="/groups" className={navLinkClass('/groups')}>Groups</Link>
+          <Link to="/expenses" className={navLinkClass('/expenses')}>Expenses</Link>
           <Link to="/notifications" className={navLinkClass('/notifications')}>Notifications</Link>
           <Link to="/profile" className={navLinkClass('/profile')}>Profile</Link>
         </div>

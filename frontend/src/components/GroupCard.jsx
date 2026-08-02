@@ -1,11 +1,13 @@
 import React from 'react'
 
-export default function GroupCard({image, title, membersText, amount, variant}){
+export default function GroupCard({image, title, membersText, amount, variant, onClick}){
+  const avatarSrc = image || 'https://via.placeholder.com/150'
+
   return (
-    <div className="glass-card p-6 rounded-xl hover:scale-[1.02] transition-transform cursor-pointer">
+    <div className="glass-card p-6 rounded-xl hover:scale-[1.02] transition-transform cursor-pointer" onClick={onClick}>
       <div className="flex items-center gap-4 mb-6">
         <div className="w-14 h-14 rounded-xl overflow-hidden">
-          <img className="w-full h-full object-cover" alt={title} src={image} />
+          <img className="w-full h-full object-cover" alt={title} src={avatarSrc} />
         </div>
         <div>
           <h4 className="font-headline-md text-body-lg font-bold">{title}</h4>

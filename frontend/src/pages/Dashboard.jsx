@@ -74,9 +74,23 @@ export default function Dashboard() {
 
   const netBalance = totalOwed - totalOwe
 
-  // Format time ago
-  const timeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000)
+  // Format time ago and date
+  const formatDate = (rawDate) => {
+    if (!rawDate) return ''
+    const d = new Date(rawDate)
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  const timeAgo = (rawDate) => {
+    if (!rawDate) return ''
+    const d = new Date(rawDate)
+    if (isNaN(d.getTime())) return ''
+    const seconds = Math.floor((new Date() - d) / 1000)
     if (seconds < 60) return 'just now'
     if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
