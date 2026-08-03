@@ -33,7 +33,7 @@ export default function ExpenseItem({
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="mb-1 text-body-md text-on-surface-variant">
-            Paid by <span className="font-bold">{paidBy}</span>
+            <span className="font-bold">{paidBy}</span>
           </p>
           <div className="flex -space-x-2">
             {avatars.map((a, i) => (

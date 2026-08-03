@@ -41,7 +41,8 @@ export default function Dashboard() {
             const expensesRes = await axiosInstance.get(`/expenses/${group._id}`)
             allExpenses.push(...expensesRes.data.data)
 
-            const balanceRes = await axiosInstance.get(`/expenses/${group._id}/balances`)
+            // Use the remaining balances endpoint that accounts for settlements
+            const balanceRes = await axiosInstance.get(`/settlements/${group._id}/remaining`)
             const { simplified } = balanceRes.data.data
 
             simplified.forEach(item => {

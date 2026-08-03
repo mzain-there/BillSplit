@@ -41,17 +41,10 @@ const settleUp = async (req, res, next) => {
             status: "completed",
         })
 
-        // Mark related expense splits as paid
-        await Expense.updateMany(
-            {
-                group: groupId,
-                "splits.user": req.user._id,
-                "splits.isPaid": false,
-            },
-            {
-                $set: { "splits.$.isPaid": true },
-            }
-        )
+        // NOTE: We do NOT mark expense splits as paid here.
+        // Settlements are tracked separately, and getRemainingBalances
+        // subtracts settlement amounts from expense-based balances.
+        // This allows partial settlements to work correctly.
 
         const populatedSettlement = await Settlement.findById(settlement._id)
             .populate("paidBy", "username email avatar")
@@ -112,8 +105,8 @@ const getRemainingBalances = async (req, res, next) => {
 
         // Get all unsettled expenses
         const expenses = await Expense.find({ group: groupId })
-            .populate("paidBy", "name email avatar")
-            .populate("splits.user", "name email avatar")
+            .populate("paidBy", "username email avatar")
+            .populate("splits.user", "username email avatar")
 
         // Get all settlements
         const settlements = await Settlement.find({
