@@ -5,6 +5,7 @@ import MemberAvatar from '../components/MemberAvatar'
 import ExpenseItem from '../components/ExpenseItem'
 import AddExpenseModal from '../components/AddExpenseModal'
 import axiosInstance from '../api/axios'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function GroupPage() {
   const { id } = useParams()
@@ -24,6 +25,13 @@ export default function GroupPage() {
   const [settleAmount, setSettleAmount] = useState('')
   const [settleNote, setSettleNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const { user } = useAuth()
+
+  const currentMember = group?.members?.find((member) => {
+    const memberUserId = member.user?._id || member.user
+    return memberUserId?.toString() === user?._id?.toString()
+  })
+  const isAdmin = currentMember?.role === 'admin' || group?.createdBy?._id?.toString() === user?._id?.toString() || group?.createdBy?.toString() === user?._id?.toString()
 
   const fetchData = async () => {
     try {
@@ -52,6 +60,11 @@ export default function GroupPage() {
 
   const handleInvite = async (e) => {
     e.preventDefault()
+    if (!isAdmin) {
+      setInviteMessage('Only the group admin can invite members.')
+      return
+    }
+
     try {
       const res = await axiosInstance.post(`/groups/${id}/invite`, { email: inviteEmail })
       setInviteMessage(res.data.message || 'Member invited')
@@ -85,6 +98,11 @@ export default function GroupPage() {
   }
 
   const handleDeleteGroup = async () => {
+    if (!isAdmin) {
+      setError('Only the group admin can delete this group.')
+      return
+    }
+
     if (!window.confirm('Delete this group? This action cannot be undone.')) return
     try {
       await axiosInstance.delete(`/groups/${id}`)
@@ -113,6 +131,7 @@ export default function GroupPage() {
           splitType: payload.splitType,
           notes: payload.notes,
           splits: payload.splits,
+          paidBy: payload.paidBy,
         })
       }
 
@@ -183,25 +202,33 @@ export default function GroupPage() {
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <form className="flex flex-wrap gap-3" onSubmit={handleInvite}>
-              <input
-                className="rounded-xl border border-outline-variant/40 bg-background px-4 py-3 outline-none focus:border-primary"
-                placeholder="Invite by email"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-              <button className="rounded-xl bg-primary px-4 py-3 font-semibold text-on-primary" type="submit">Invite</button>
-            </form>
+            {isAdmin ? (
+              <form className="flex flex-wrap gap-3" onSubmit={handleInvite}>
+                <input
+                  className="rounded-xl border border-outline-variant/40 bg-background px-4 py-3 outline-none focus:border-primary"
+                  placeholder="Invite by email"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                />
+                <button className="rounded-xl bg-primary px-4 py-3 font-semibold text-on-primary" type="submit">Invite</button>
+              </form>
+            ) : (
+              <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">Only the group admin can invite members.</div>
+            )}
             <button className="rounded-xl border border-primary/20 px-4 py-3 font-semibold text-primary" onClick={() => openGroupModal('view')}>
               View Group
             </button>
-            <button className="rounded-xl border border-primary/20 px-4 py-3 font-semibold text-primary" onClick={() => openGroupModal('edit')}>
-              Edit Group
-            </button>
-            <button className="rounded-xl border border-red-500/20 px-4 py-3 font-semibold text-red-500" onClick={handleDeleteGroup}>
-              Delete Group
-            </button>
+            {isAdmin && (
+              <>
+                <button className="rounded-xl border border-primary/20 px-4 py-3 font-semibold text-primary" onClick={() => openGroupModal('edit')}>
+                  Edit Group
+                </button>
+                <button className="rounded-xl border border-red-500/20 px-4 py-3 font-semibold text-red-500" onClick={handleDeleteGroup}>
+                  Delete Group
+                </button>
+              </>
+            )}
             <button className="rounded-xl border border-primary/20 px-4 py-3 font-semibold text-primary" onClick={() => setExpenseModal({ open: true, mode: 'create', expense: null })}>
               New Expense
             </button>
@@ -218,6 +245,7 @@ export default function GroupPage() {
           onSubmit={handleExpenseSubmit}
           open={expenseModal.open}
           selectedGroupId={id}
+          currentUserId={user?._id}
         />
 
         <div className="relative mb-8 flex border-b border-outline-variant/30">
@@ -231,19 +259,27 @@ export default function GroupPage() {
             {expenses.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-outline-variant/40 p-10 text-center text-on-surface-variant md:col-span-2 xl:col-span-3">No expenses yet. Add the first one above.</div>
             ) : (
-              expenses.map((expense) => (
+            expenses.map((expense) => {
+                const isSettled = expense.splits?.every((s) => s.isPaid)
+                return (
                 <ExpenseItem
                   key={expense._id}
                   date={new Date(expense.date).toLocaleDateString()}
                   title={expense.title}
-                  paidBy={expense.paidBy?.name || 'Someone'}
+                  paidBy={
+                    expense.paidBy?._id === user?._id
+                      ? 'You'
+                      : expense.paidBy?.username || 'Someone'
+                  }
                   avatars={(expense.splits || []).slice(0, 4).map((split) => split.user?.avatar || 'https://via.placeholder.com/32')}
                   amount={formatCurrency(expense.amount)}
-                  color="primary"
+                  color={isSettled ? 'secondary' : 'primary'}
+                  isSettled={isSettled}
                   onEdit={() => setExpenseModal({ open: true, mode: 'edit', expense })}
                   onDelete={() => handleDeleteExpense(expense._id)}
                 />
-              ))
+                )
+              })
             )}
           </div>
         )}
@@ -260,12 +296,18 @@ export default function GroupPage() {
                   <div key={`${balance.from}-${balance.to}-${index}`} className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="font-semibold text-on-surface">{fromUser?.user?.name || 'Someone'} owes {toUser?.user?.name || 'someone'}</p>
+                        <p className="font-semibold text-on-surface">
+                          {fromUser?.user?._id === user?._id ? 'You' : fromUser?.user?.username || 'Someone'}
+                          {' '}owe{fromUser?.user?._id === user?._id ? '' : 's'}{' '}
+                          {toUser?.user?._id === user?._id ? 'you' : toUser?.user?.username || 'someone'}
+                        </p>
                         <p className="mt-1 text-on-surface-variant">{formatCurrency(balance.amount)}</p>
                       </div>
-                      <button className="rounded-xl bg-primary px-4 py-2.5 font-semibold text-on-primary" onClick={() => setSettleModal({ open: true, balance: { ...balance, from: balance.from, to: balance.to } })} type="button">
-                        Settle Up
-                      </button>
+                      {balance.from === user?._id && (
+                        <button className="rounded-xl bg-primary px-4 py-2.5 font-semibold text-on-primary" onClick={() => setSettleModal({ open: true, balance: { ...balance, from: balance.from, to: balance.to } })} type="button">
+                          Settle Up
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
@@ -281,8 +323,21 @@ export default function GroupPage() {
             ) : (
               settlements.map((settlement) => (
                 <div key={settlement._id} className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-5">
-                  <p className="font-semibold text-on-surface">{settlement.paidBy?.name || 'Someone'} paid {settlement.paidTo?.name || 'someone'}</p>
-                  <p className="mt-1 text-on-surface-variant">{formatCurrency(settlement.amount)}{settlement.note ? ` • ${settlement.note}` : ''}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
+                    <p className="font-semibold text-on-surface">
+                      {settlement.paidBy?._id === user?._id ? 'You' : settlement.paidBy?.username || 'Someone'}
+                      {' '}paid{' '}
+                      {settlement.paidTo?._id === user?._id ? 'you' : settlement.paidTo?.username || 'someone'}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-on-surface-variant">
+                    <span className="font-bold text-green-500">{formatCurrency(settlement.amount)}</span>
+                    {settlement.note ? ` • ${settlement.note}` : ''}
+                  </p>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    {new Date(settlement.settledAt || settlement.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
                 </div>
               ))
             )}
@@ -326,10 +381,23 @@ export default function GroupPage() {
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Members</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {(group?.members || []).map((member) => (
-                      <span key={member.user?._id || member.user} className="rounded-full bg-surface-container px-3 py-2 text-sm">{member.user?.name || 'Member'}</span>
-                    ))}
+                    {(group?.members || []).map((member) => {
+                      const memberId = member.user?._id || member.user
+                      const isAdminMember = member.role === 'admin'
+                      return (
+                        <span key={memberId} className="rounded-full bg-surface-container px-3 py-2 text-sm flex items-center gap-1.5">
+                          {member.user?.username || 'Member'}
+                          {isAdminMember && (
+                            <span className="text-[10px] font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
+                          )}
+                        </span>
+                      )
+                    })}
                   </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Created by</p>
+                  <p className="mt-2 text-on-surface">{group?.createdBy?.username || 'Unknown'}</p>
                 </div>
               </div>
             )}

@@ -16,6 +16,7 @@ export default function Profile() {
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [groupCount, setGroupCount] = useState(0)
   const [expenseCount, setExpenseCount] = useState(0)
+  const [settledAmount, setSettledAmount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [success, setSuccess] = useState('')
@@ -48,14 +49,29 @@ export default function Profile() {
     const fetchStats = async () => {
       try {
         const groupsRes = await axiosInstance.get('/groups')
-        setGroupCount(groupsRes.data.data.length)
+        const fetchedGroups = groupsRes.data.data
+        setGroupCount(fetchedGroups.length)
 
         let totalExpenses = 0
-        for (const group of groupsRes.data.data) {
+        let totalSettled = 0
+
+        for (const group of fetchedGroups) {
           const expensesRes = await axiosInstance.get(`/expenses/${group._id}`)
           totalExpenses += expensesRes.data.data.length
+
+          try {
+            const settlementsRes = await axiosInstance.get(`/settlements/${group._id}`)
+            const settlementsData = settlementsRes.data.data || []
+            // Sum settlements where the current user paid
+            settlementsData.forEach((s) => {
+              if (s.paidBy?._id === user?._id || s.paidBy === user?._id) {
+                totalSettled += s.amount || 0
+              }
+            })
+          } catch (_) {}
         }
         setExpenseCount(totalExpenses)
+        setSettledAmount(totalSettled)
       } catch (err) {
         console.error('Error fetching stats:', err)
       }
@@ -252,7 +268,7 @@ export default function Profile() {
                   <div className="text-label-sm text-on-surface-variant uppercase tracking-wider">Splits</div>
                 </div>
                 <div>
-                  <div className="font-headline-md text-headline-md text-secondary">Rs. 0</div>
+                  <div className="font-headline-md text-headline-md text-secondary">Rs. {settledAmount.toFixed(2)}</div>
                   <div className="text-label-sm text-on-surface-variant uppercase tracking-wider">Settled</div>
                 </div>
               </div>

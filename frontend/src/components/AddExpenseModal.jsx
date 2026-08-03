@@ -10,6 +10,7 @@ export default function AddExpenseModal({
   selectedGroupId = '',
   onGroupChange = () => {},
   members = [],
+  currentUserId = '',
 }) {
   const [form, setForm] = useState({
     title: '',
@@ -17,10 +18,12 @@ export default function AddExpenseModal({
     notes: '',
     date: new Date().toISOString().split('T')[0],
     groupId: selectedGroupId || groups[0]?._id || '',
+    paidBy: '',
   })
   const [splitType, setSplitType] = useState('equal')
   const [customSplits, setCustomSplits] = useState([])
   const [formError, setFormError] = useState('')
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   const memberList = useMemo(() => {
     if (members?.length) return members
@@ -33,9 +36,11 @@ export default function AddExpenseModal({
     return []
   }, [members, groups, form.groupId])
 
-  // Initialize form inputs ONLY when opening modal or changing initialData/selectedGroupId
+ 
+
+  // Initialize form inputs ONLY when modal first opens
   useEffect(() => {
-    if (open) {
+    if (open && !hasInitialized) {
       const nextGroupId = selectedGroupId || initialData?.groupId || groups[0]?._id || ''
       const dateVal = initialData?.date
         ? new Date(initialData.date).toISOString().split('T')[0]
@@ -47,11 +52,18 @@ export default function AddExpenseModal({
         notes: initialData?.notes || '',
         date: dateVal,
         groupId: nextGroupId,
+        paidBy: initialData?.paidBy?._id || initialData?.paidBy || currentUserId || '',
       })
       setSplitType(initialData?.splitType || 'equal')
       setFormError('')
+      setHasInitialized(true)
     }
-  }, [open, initialData, selectedGroupId, groups])
+    
+    // Reset initialization flag when modal closes
+    if (!open) {
+      setHasInitialized(false)
+    }
+  }, [open, initialData, selectedGroupId, groups, currentUserId, hasInitialized])
 
   // Initialize custom splits state when modal opens or members list is available
   useEffect(() => {
@@ -73,26 +85,55 @@ export default function AddExpenseModal({
     }
   }, [open, initialData, memberList])
 
+  // When paidBy changes, recalculate splits to exclude the payer
+  useEffect(() => {
+    if (!form.paidBy || !memberList.length) return
+    
+    setCustomSplits((prev) => {
+      return prev.map((split) => {
+        // Clear amounts for the payer
+        if (split.userId === form.paidBy) {
+          return { ...split, amount: '', percentage: '' }
+        }
+        return split
+      })
+    })
+  }, [form.paidBy, memberList])
+
   // Auto-calculate equal shares when amount or splitType changes
   useEffect(() => {
     if (splitType !== 'equal' || !memberList.length) return
 
     const numericAmount = Number(form.amount)
-    const share = form.amount && !isNaN(numericAmount) && numericAmount > 0
-      ? (numericAmount / memberList.length).toFixed(2)
+    // Exclude the payer from splits
+    const splitMembers = memberList.filter((member) => {
+      const uid = member._id || member.id || member.user?._id || member.user?.id
+      return uid !== form.paidBy
+    })
+
+    const share = form.amount && !isNaN(numericAmount) && numericAmount > 0 && splitMembers.length > 0
+      ? (numericAmount / splitMembers.length).toFixed(2)
       : ''
 
     setCustomSplits((prev) => {
       if (!prev.length) {
-        return memberList.map((member) => ({
+        return splitMembers.map((member) => ({
           userId: member._id || member.id || member.user?._id || member.user?.id,
           amount: share,
           percentage: '',
         }))
       }
-      return prev.map((item) => ({ ...item, amount: share }))
+      // Update only splits for members who are not the payer
+      return memberList.map((member) => {
+        const uid = member._id || member.id || member.user?._id || member.user?.id
+        const existingSplit = prev.find(s => s.userId === uid)
+        if (uid === form.paidBy) {
+          return { userId: uid, amount: '', percentage: '' }
+        }
+        return existingSplit ? { ...existingSplit, amount: share } : { userId: uid, amount: share, percentage: '' }
+      })
     })
-  }, [splitType, form.amount, memberList])
+  }, [splitType, form.amount, form.paidBy, memberList])
 
   if (!open) return null
 
@@ -117,6 +158,7 @@ export default function AddExpenseModal({
       date: form.date ? new Date(form.date).toISOString() : new Date().toISOString(),
       splitType,
       groupId: form.groupId || selectedGroupId || initialData?.groupId || groups[0]?._id || '',
+      paidBy: form.paidBy || currentUserId || '',
     }
 
     if (splitType === 'custom') {
@@ -149,7 +191,12 @@ export default function AddExpenseModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden px-4 py-6">
       <div className="absolute inset-0 bg-surface/60 backdrop-blur-2xl" onClick={onClose}></div>
-      <div className="relative w-full max-w-2xl rounded-3xl border border-outline-variant/30 bg-background p-6 shadow-2xl">
+      <div
+        aria-modal="true"
+        className="relative z-10 w-full max-w-2xl rounded-3xl border border-outline-variant/30 bg-background p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+      >
         <div className="mb-6 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Expense</p>
@@ -191,6 +238,27 @@ export default function AddExpenseModal({
               value={form.title}
             />
           </div>
+
+          {memberList.length > 0 && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Paid by</label>
+              <select
+                className="w-full rounded-xl border border-outline-variant/40 bg-background px-4 py-3 outline-none focus:border-primary"
+                onChange={(e) => setForm((prev) => ({ ...prev, paidBy: e.target.value }))}
+                value={form.paidBy}
+              >
+                {memberList.map((member) => {
+                  const uid = member._id || member.id || member.user?._id || member.user?.id
+                  const label = member?.username || member?.name || 'Member'
+                  return (
+                    <option key={uid} value={uid}>
+                      {label}{uid === currentUserId ? ' (You)' : ''}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -240,6 +308,10 @@ export default function AddExpenseModal({
               {customSplits.map((split) => {
                 const member = memberList.find((item) => (item._id || item.id || item.user?._id || item.user?.id) === split.userId)
                 const label = member?.name || member?.username || 'Member'
+                const isPayer = split.userId === form.paidBy
+                
+                if (isPayer) return null // Don't show payer in splits
+                
                 return (
                   <div key={split.userId} className="flex items-center gap-3">
                     <div className="min-w-[120px] text-sm font-semibold">{label}</div>
@@ -263,6 +335,10 @@ export default function AddExpenseModal({
               {customSplits.map((split) => {
                 const member = memberList.find((item) => (item._id || item.id || item.user?._id || item.user?.id) === split.userId)
                 const label = member?.name || member?.username || 'Member'
+                const isPayer = split.userId === form.paidBy
+                
+                if (isPayer) return null // Don't show payer in splits
+                
                 return (
                   <div key={split.userId} className="flex items-center gap-3">
                     <div className="min-w-[120px] text-sm font-semibold">{label}</div>

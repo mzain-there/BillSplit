@@ -54,8 +54,8 @@ const settleUp = async (req, res, next) => {
         )
 
         const populatedSettlement = await Settlement.findById(settlement._id)
-            .populate("paidBy", "name email avatar")
-            .populate("paidTo", "name email avatar")
+            .populate("paidBy", "username email avatar")
+            .populate("paidTo", "username email avatar")
             .populate("group", "name")
 
         return res.status(201).json(
@@ -87,8 +87,8 @@ const getGroupSettlements = async (req, res, next) => {
         }
 
         const settlements = await Settlement.find({ group: groupId })
-            .populate("paidBy", "name email avatar")
-            .populate("paidTo", "name email avatar")
+            .populate("paidBy", "username email avatar")
+            .populate("paidTo", "username email avatar")
             .sort({ settledAt: -1 })
 
         return res.status(200).json(

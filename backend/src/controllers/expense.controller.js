@@ -9,7 +9,7 @@ import { calculateSplitAmounts, calculateBalances, simplifyDebts } from "../util
 
 const addExpense = async (req, res, next) => {
   try {
-    const { title, amount, splitType, splits, date, notes } = req.body
+    const { title, amount, splitType, splits, date, notes, paidBy: paidByField } = req.body
     const groupId = req.params.groupId
 
     // Validation
@@ -31,8 +31,22 @@ const addExpense = async (req, res, next) => {
       throw new ApiError(403, "You are not a member of this group")
     }
 
-    // Get all member IDs
-    const memberIds = group.members.map((m) => m.user)
+    // Validate paidBy — must be a group member; default to current user
+    let paidById = req.user._id
+    if (paidByField) {
+      const isPaidByMember = group.members.some(
+        (m) => m.user.toString() === paidByField.toString()
+      )
+      if (!isPaidByMember) {
+        throw new ApiError(400, "The selected payer is not a member of this group")
+      }
+      paidById = paidByField
+    }
+
+    // Get all member IDs EXCEPT the payer (payer doesn't owe themselves)
+    const memberIds = group.members
+      .map((m) => m.user)
+      .filter((uid) => uid.toString() !== paidById.toString())
 
     // Calculate splits based on type
     const calculatedSplits = calculateSplitAmounts(
@@ -46,7 +60,7 @@ const addExpense = async (req, res, next) => {
     const expense = await Expense.create({
       title,
       amount: parseFloat(amount),
-      paidBy: req.user._id,
+      paidBy: paidById,
       group: groupId,
       splitType: splitType || "equal",
       splits: calculatedSplits,
@@ -60,8 +74,8 @@ const addExpense = async (req, res, next) => {
     })
 
     const populatedExpense = await Expense.findById(expense._id)
-      .populate("paidBy", "name email avatar")
-      .populate("splits.user", "name email avatar")
+      .populate("paidBy", "username email avatar")
+      .populate("splits.user", "username email avatar")
 
     return res.status(201).json(
       new ApiResponse(201, populatedExpense, "Expense added successfully")
@@ -93,8 +107,8 @@ const getGroupExpenses = async (req, res, next) => {
     }
 
     const expenses = await Expense.find({ group: groupId })
-      .populate("paidBy", "name email avatar")
-      .populate("splits.user", "name email avatar")
+      .populate("paidBy", "username email avatar")
+      .populate("splits.user", "username email avatar")
       .sort({ date: -1 })
 
     return res.status(200).json(
@@ -126,7 +140,10 @@ const editExpense = async (req, res, next) => {
     let updatedSplits = expense.splits
     if (amount || splitType) {
       const group = await Group.findById(expense.group)
-      const memberIds = group.members.map((m) => m.user)
+      // Exclude the payer from splits
+      const memberIds = group.members
+        .map((m) => m.user)
+        .filter((uid) => uid.toString() !== expense.paidBy.toString())
 
       updatedSplits = calculateSplitAmounts(
         parseFloat(amount || expense.amount),
@@ -148,8 +165,8 @@ const editExpense = async (req, res, next) => {
       },
       { new: true }
     )
-      .populate("paidBy", "name email avatar")
-      .populate("splits.user", "name email avatar")
+      .populate("paidBy", "username email avatar")
+      .populate("splits.user", "username email avatar")
 
     return res.status(200).json(
       new ApiResponse(200, updatedExpense, "Expense updated successfully")
@@ -212,8 +229,8 @@ const getGroupBalances = async (req, res, next) => {
 
     // Get all expenses
     const expenses = await Expense.find({ group: groupId })
-      .populate("paidBy", "name email avatar")
-      .populate("splits.user", "name email avatar")
+      .populate("paidBy", "username email avatar")
+      .populate("splits.user", "username email avatar")
 
     // Calculate balances
     const balances = calculateBalances(expenses, req.user._id)

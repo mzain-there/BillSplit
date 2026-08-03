@@ -41,7 +41,7 @@ const createGroup = async (req, res, next) => {
 
     const createdGroup = await Group.findById(group._id).populate(
       "members.user",
-      "name email avatar"
+      "username email avatar"
     )
 
     return res.status(201).json(
@@ -59,8 +59,8 @@ const getMyGroups = async (req, res, next) => {
     const groups = await Group.find({
       "members.user": req.user._id,
     })
-      .populate("members.user", "name email avatar")
-      .populate("createdBy", "name email")
+      .populate("members.user", "username email avatar")
+      .populate("createdBy", "username email")
       .sort({ createdAt: -1 })
 
     return res.status(200).json(
@@ -76,13 +76,13 @@ const getMyGroups = async (req, res, next) => {
 const getGroupById = async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id)
-      .populate("members.user", "name email avatar")
-      .populate("createdBy", "name email")
+      .populate("members.user", "username email avatar")
+      .populate("createdBy", "username email")
       .populate({
         path: "expenses",
         populate: {
           path: "paidBy splits.user",
-          select: "name email avatar",
+          select: "username email avatar",
         },
       })
 
@@ -160,11 +160,54 @@ const inviteMember = async (req, res, next) => {
 
     const updatedGroup = await Group.findById(groupId).populate(
       "members.user",
-      "name email avatar"
+      "username email avatar"
     )
 
     return res.status(200).json(
       new ApiResponse(200, updatedGroup, `${userToInvite.username} added to group successfully`)
+    )
+  } catch (error) {
+    next(error)
+  }
+}
+
+//Update Group
+
+const updateGroup = async (req, res, next) => {
+  try {
+    const { name, description } = req.body
+    const group = await Group.findById(req.params.id)
+
+    if (!group) {
+      throw new ApiError(404, "Group not found")
+    }
+
+    const requester = group.members.find(
+      (m) => m.user.toString() === req.user._id.toString()
+    )
+    if (!requester || requester.role !== "admin") {
+      throw new ApiError(403, "Only admin can update this group")
+    }
+
+    if (name !== undefined) {
+      if (!name.trim()) {
+        throw new ApiError(400, "Group name is required")
+      }
+      group.name = name.trim()
+    }
+
+    if (description !== undefined) {
+      group.description = description || ""
+    }
+
+    await group.save()
+
+    const updatedGroup = await Group.findById(group._id)
+      .populate("members.user", "username email avatar")
+      .populate("createdBy", "username email")
+
+    return res.status(200).json(
+      new ApiResponse(200, updatedGroup, "Group updated successfully")
     )
   } catch (error) {
     next(error)
@@ -210,5 +253,6 @@ export {
   getMyGroups,
   getGroupById,
   inviteMember,
+  updateGroup,
   deleteGroup
 }

@@ -7,6 +7,7 @@ export default function ExpenseItem({
   avatars = [],
   amount,
   color = 'primary',
+  isSettled = false,
   onEdit = () => {},
   onDelete = () => {},
 }) {
@@ -14,7 +15,15 @@ export default function ExpenseItem({
     <div className={`glass-card expense-card-hover p-gutter rounded-xl border-l-[6px] border-l-${color} transition-all duration-300`}>
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <span className="mb-1 block text-label-sm uppercase tracking-wider text-outline">{date}</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="block text-label-sm uppercase tracking-wider text-outline">{date}</span>
+            {isSettled && (
+              <span className="text-[10px] font-bold bg-green-500/20 text-green-500 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                Settled
+              </span>
+            )}
+          </div>
           <h3 className="font-headline-md text-on-surface">{title}</h3>
         </div>
         <div className="rounded-lg p-2">

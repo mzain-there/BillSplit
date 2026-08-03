@@ -4,6 +4,7 @@ import {
   getMyGroups,
   getGroupById,
   inviteMember,
+  updateGroup,
   deleteGroup
 } from "../controllers/group.controller.js"
 import verifyJWT from "../middlewares/auth.middleware.js"
@@ -17,6 +18,7 @@ router.use(verifyJWT)
 router.post("/", upload.single("avatar"), createGroup)
 router.get("/", getMyGroups)
 router.get("/:id", getGroupById)
+router.put("/:id", updateGroup)
 router.post("/:id/invite", inviteMember)
 router.delete("/:id", deleteGroup)
 

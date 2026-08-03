@@ -120,13 +120,13 @@ export default function Dashboard() {
             label="Receivable"
             title="You Are Owed"
             amount={`Rs. ${totalOwed.toFixed(2)}`}
-            icon={<span className="material-symbols-outlined">trending_up</span>}
+            icon={<span className="material-symbols-outlined">call_received</span>}
           />
           <SummaryCard
             label="Payable"
             title="You Owe"
             amount={`Rs. ${totalOwe.toFixed(2)}`}
-            icon={<span className="material-symbols-outlined">trending_down</span>}
+            icon={<span className="material-symbols-outlined">call_made</span>}
           />
           <SummaryCard
             label="Net Worth"
@@ -200,7 +200,7 @@ export default function Dashboard() {
                     <div className="glass-card p-5 rounded-xl">
                       <p className="font-body-md text-on-surface mb-2">
                         <span className="font-bold">
-                          {expense.paidBy?._id === user?._id ? 'You' : expense.paidBy?.name}
+                          {expense.paidBy?._id === user?._id ? 'You' : expense.paidBy?.username || 'Someone'}
                         </span>
                         {' '}added{' '}
                         <span className="text-primary font-medium">"{expense.title}"</span>
