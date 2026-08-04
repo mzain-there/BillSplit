@@ -6,6 +6,7 @@ import errorHandler from "./src/middlewares/error.middleware.js"
 import groupRoutes from "./src/routes/group.routes.js"
 import expenseRoutes from "./src/routes/expense.routes.js"
 import settlementRoutes from "./src/routes/settlement.routes.js"
+import notificationRoutes from "./src/routes/notification.routes.js"
 
 const app = express()
 
@@ -38,6 +39,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/groups", groupRoutes)
 app.use("/api/expenses", expenseRoutes)
 app.use("/api/settlements", settlementRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 app.get("/", (req, res) => {
   res.send("BillSplit API is running...")

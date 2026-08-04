@@ -1,9 +1,11 @@
 import Settlement from "../models/settlement.model.js"
 import Group from "../models/group.model.js"
 import Expense from "../models/expense.model.js"
+import User from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import { calculateBalances, simplifyDebts } from "../utils/calculateSplit.js"
+import { createNotifications } from "../utils/createNotification.js"
 
 //Settle Up 
 
@@ -50,6 +52,20 @@ const settleUp = async (req, res, next) => {
             .populate("paidBy", "username email avatar")
             .populate("paidTo", "username email avatar")
             .populate("group", "name")
+
+        // Create notification for the person who received payment
+        const payer = await User.findById(req.user._id)
+        await createNotifications(
+            [paidTo],
+            req.user._id,
+            "settlement_made",
+            `${payer?.username || 'Someone'} paid you Rs. ${amount} in ${group.name}`,
+            {
+                groupId,
+                settlementId: settlement._id,
+                amount: parseFloat(amount)
+            }
+        )
 
         return res.status(201).json(
             new ApiResponse(201, populatedSettlement, "Payment settled successfully")

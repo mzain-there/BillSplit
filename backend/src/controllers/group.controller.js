@@ -3,6 +3,7 @@ import User from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import uploadToCloudinary from "../utils/uploadToCloudinary.js"
+import { createNotifications } from "../utils/createNotification.js"
 
 //Create Group 
 
@@ -162,6 +163,30 @@ const inviteMember = async (req, res, next) => {
       "members.user",
       "username email avatar"
     )
+
+    // Create notification for the newly added member
+    await createNotifications(
+      [userToInvite._id],
+      req.user._id,
+      "member_added",
+      `${req.user.username} added you to ${group.name}`,
+      { groupId }
+    )
+
+    // Create notifications for all existing members about the new member
+    const existingMemberIds = group.members
+      .map(m => m.user.toString())
+      .filter(uid => uid !== req.user._id.toString() && uid !== userToInvite._id.toString())
+    
+    if (existingMemberIds.length > 0) {
+      await createNotifications(
+        existingMemberIds,
+        req.user._id,
+        "member_added",
+        `${req.user.username} added ${userToInvite.username} to ${group.name}`,
+        { groupId }
+      )
+    }
 
     return res.status(200).json(
       new ApiResponse(200, updatedGroup, `${userToInvite.username} added to group successfully`)

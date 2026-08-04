@@ -3,6 +3,7 @@ import Group from "../models/group.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import { calculateSplitAmounts, calculateBalances, simplifyDebts } from "../utils/calculateSplit.js"
+import { createNotifications } from "../utils/createNotification.js"
 
 
 //Add Expense
@@ -76,6 +77,26 @@ const addExpense = async (req, res, next) => {
     const populatedExpense = await Expense.findById(expense._id)
       .populate("paidBy", "username email avatar")
       .populate("splits.user", "username email avatar")
+
+    // Create notifications for all group members except the payer
+    const recipientIds = group.members
+      .map(m => m.user.toString())
+      .filter(uid => uid !== paidById.toString())
+
+    if (recipientIds.length > 0) {
+      const payer = await import("../models/user.model.js").then(mod => mod.default.findById(paidById))
+      await createNotifications(
+        recipientIds,
+        paidById,
+        "expense_added",
+        `${payer?.username || 'Someone'} added "${title}" expense of Rs. ${amount} in ${group.name}`,
+        {
+          groupId,
+          expenseId: expense._id,
+          amount: parseFloat(amount)
+        }
+      )
+    }
 
     return res.status(201).json(
       new ApiResponse(201, populatedExpense, "Expense added successfully")
