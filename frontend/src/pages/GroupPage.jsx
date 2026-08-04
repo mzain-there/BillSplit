@@ -196,7 +196,7 @@ export default function GroupPage() {
             <h1 className="font-display-xl text-display-xl text-on-surface leading-tight mt-2">{group?.name || 'Group'}</h1>
             <p className="mt-3 max-w-2xl text-on-surface-variant">{group?.description || 'Shared expenses and balances live here.'}</p>
             <div className="mt-5 flex items-center gap-3">
-              <MemberAvatar images={(group?.members || []).slice(0, 4).map((member) => member.user?.avatar || 'https://via.placeholder.com/48')} />
+              <MemberAvatar members={group?.members || []} />
               <span className="text-sm text-on-surface-variant">{group?.members?.length || 0} members</span>
             </div>
           </div>
@@ -287,7 +287,13 @@ export default function GroupPage() {
         {tab === 'balances' && (
           <div className="space-y-4">
             {balances.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-outline-variant/40 p-10 text-center text-on-surface-variant">No balances yet.</div>
+              <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-10 text-center">
+                <div className="flex justify-center mb-4">
+                  <span className="material-symbols-outlined text-6xl text-green-500">check_circle</span>
+                </div>
+                <h3 className="text-xl font-bold text-green-500 mb-2">All Settled Up! 🎉</h3>
+                <p className="text-on-surface-variant">Everyone in this group is square. No outstanding balances.</p>
+              </div>
             ) : (
               balances.map((balance, index) => {
                 const fromUser = (group?.members || []).find((member) => member.user?._id === balance.from)

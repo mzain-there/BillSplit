@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import AddExpenseModal from '../components/AddExpenseModal'
+import { useAuth } from '../contexts/AuthContext'
 import axiosInstance from '../api/axios'
 
 export default function Expenses() {
+  const { user } = useAuth()
   const [expenses, setExpenses] = useState([])
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +75,7 @@ export default function Expenses() {
           splitType: payload.splitType,
           notes: payload.notes,
           splits: payload.splits,
+          paidBy: payload.paidBy,
         })
       }
 
@@ -149,9 +152,8 @@ export default function Expenses() {
                 </div>
 
                 <div className="space-y-2 text-sm text-on-surface-variant">
-                  <p>
-                    <span className="font-semibold text-on-surface">Paid by:</span>{' '}
-                    {expense.paidBy?.name || 'Someone'}
+                  <p className="font-semibold text-on-surface">
+                    {expense.paidBy?.username || 'Someone'}
                   </p>
                   <p>
                     <span className="font-semibold text-on-surface">Group:</span>{' '}
@@ -192,6 +194,7 @@ export default function Expenses() {
         onSubmit={handleExpenseSubmit}
         open={modalOpen}
         selectedGroupId={selectedGroupId}
+        currentUserId={user?._id}
       />
     </div>
   )

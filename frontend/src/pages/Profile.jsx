@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import Avatar from '../components/Avatar'
 import { useAuth } from '../contexts/AuthContext'
 import axiosInstance from '../api/axios'
 
@@ -227,12 +228,18 @@ export default function Profile() {
           <aside className="lg:col-span-4 space-y-gutter sticky top-28">
             <div className="glass-card rounded-xl p-8 flex flex-col items-center text-center primary-glow animate-fade-in">
               <div className="relative group">
-                <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border-4 border-white shadow-xl overflow-hidden mb-6 relative z-10">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    alt="profile"
-                    src={avatarPreview || 'https://via.placeholder.com/150'}
-                  />
+                <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border-4 border-white shadow-xl overflow-hidden mb-6 relative z-10 flex items-center justify-center">
+                  {avatarPreview ? (
+                    <img
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      alt="profile"
+                      src={avatarPreview}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-primary flex items-center justify-center text-white text-6xl font-bold">
+                      {user?.username ? user.username.substring(0, 2).toUpperCase() : '?'}
+                    </div>
+                  )}
                 </div>
                 <button
                   className="absolute bottom-6 right-2 z-20 bg-primary text-on-primary p-3 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all"

@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import NotificationsDropdown from './NotificationsDropdown'
 import { useAuth } from '../contexts/AuthContext'
+import axiosInstance from '../api/axios'
 
 export default function Navbar() {
   const { user } = useAuth()
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const ref = useRef()
 
   useEffect(() => {
@@ -16,6 +18,34 @@ export default function Navbar() {
     document.addEventListener('click', onDoc)
     return () => document.removeEventListener('click', onDoc)
   }, [])
+
+  // Fetch unread count
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount()
+      // Poll every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await axiosInstance.get('/notifications/unread-count')
+      setUnreadCount(res.data.data?.count || 0)
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err)
+    }
+  }
+
+  const handleNotificationClick = (e) => {
+    e.stopPropagation()
+    setOpen(v => !v)
+    if (!open) {
+      // Refresh notifications when opening
+      setTimeout(fetchUnreadCount, 1000)
+    }
+  }
 
   const isActive = (path) => {
     if (path === '/dashboard') return location.pathname === '/dashboard'
@@ -55,9 +85,13 @@ export default function Navbar() {
 
         {/* ── Right Action Controls ── */}
         <div className="flex items-center gap-4">
-          <button onClick={(e) => { e.stopPropagation(); setOpen(v => !v) }} className="relative p-2 rounded-full hover:bg-surface-container transition-colors">
+          <button onClick={handleNotificationClick} className="relative p-2 rounded-full hover:bg-surface-container transition-colors">
             <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-primary text-on-primary rounded-full text-[10px] font-bold flex items-center justify-center px-1">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
           
           <Link to="/profile" className="w-10 h-10 rounded-full ring-2 ring-primary/40 hover:ring-primary p-0.5 overflow-hidden transition-all flex items-center justify-center bg-primary/10">
