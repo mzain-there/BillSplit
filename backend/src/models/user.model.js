@@ -7,7 +7,6 @@ const userSchema = new Schema({
         required: [true, "Username is required"],
         unique: true,
         trim: true,
-        lowercase: true,
         index: true
     },
     email: {
@@ -19,8 +18,8 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: [true, "Password is required."],
-
-
+        minlength: [8, "Password must be at least 8 characters long."],
+        match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character."]
     },
     avatar: {
         type: String,
