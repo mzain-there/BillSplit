@@ -54,7 +54,7 @@ export default function Profile() {
         setGroupCount(fetchedGroups.length)
 
         let totalExpenses = 0
-        let totalSettled = 0
+        let totalSettlements = 0
 
         for (const group of fetchedGroups) {
           const expensesRes = await axiosInstance.get(`/expenses/${group._id}`)
@@ -63,16 +63,16 @@ export default function Profile() {
           try {
             const settlementsRes = await axiosInstance.get(`/settlements/${group._id}`)
             const settlementsData = settlementsRes.data.data || []
-            // Sum settlements where the current user paid
+            // Count settlements where the current user made payment
             settlementsData.forEach((s) => {
               if (s.paidBy?._id === user?._id || s.paidBy === user?._id) {
-                totalSettled += s.amount || 0
+                totalSettlements += 1
               }
             })
           } catch (_) {}
         }
         setExpenseCount(totalExpenses)
-        setSettledAmount(totalSettled)
+        setSettledAmount(totalSettlements) // Now stores count, not amount
       } catch (err) {
         console.error('Error fetching stats:', err)
       }
@@ -272,11 +272,11 @@ export default function Profile() {
                 </div>
                 <div>
                   <div className="font-headline-md text-headline-md text-primary">{expenseCount}</div>
-                  <div className="text-label-sm text-on-surface-variant uppercase tracking-wider">Splits</div>
+                  <div className="text-label-sm text-on-surface-variant uppercase tracking-wider">Expenses</div>
                 </div>
                 <div>
-                  <div className="font-headline-md text-headline-md text-secondary">Rs. {settledAmount.toFixed(2)}</div>
-                  <div className="text-label-sm text-on-surface-variant uppercase tracking-wider">Settled</div>
+                  <div className="font-headline-md text-headline-md text-secondary">{settledAmount}</div>
+                  <div className="text-label-sm text-on-surface-variant uppercase tracking-wider">Settlements</div>
                 </div>
               </div>
 

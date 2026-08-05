@@ -20,7 +20,7 @@ export default function ExpenseItem({
             {isSettled && (
               <span className="text-[10px] font-bold bg-green-500/20 text-green-500 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-0.5">
                 <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                Settled
+                Settled up
               </span>
             )}
           </div>

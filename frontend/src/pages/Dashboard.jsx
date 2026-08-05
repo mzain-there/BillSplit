@@ -12,6 +12,7 @@ export default function Dashboard() {
 
   const [groups, setGroups] = useState([])
   const [recentExpenses, setRecentExpenses] = useState([])
+  const [totalExpenses, setTotalExpenses] = useState(0)
   const [totalOwed, setTotalOwed] = useState(0)
   const [totalOwe, setTotalOwe] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -54,11 +55,12 @@ export default function Dashboard() {
           }
         }
 
-        // Sort by date and take latest 5
+        // Sort by date and take latest 5 for recent activity
         const sorted = allExpenses
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 5)
 
+        setTotalExpenses(allExpenses.length)
         setRecentExpenses(sorted)
         setTotalOwed(owed)
         setTotalOwe(owe)
@@ -109,14 +111,12 @@ export default function Dashboard() {
             {getGreeting()}, {user?.username?.split(' ')[0]} 👋
           </h1>
           <p className="text-on-surface-variant font-body-lg mt-4 max-w-2xl">
-            {netBalance >= 0
-              ? `You're in a positive net position of Rs. ${netBalance.toFixed(2)}.`
-              : `You have a net balance of -Rs. ${Math.abs(netBalance).toFixed(2)}.`}
+            You're part of {groups.length} group{groups.length === 1 ? '' : 's'} with {totalExpenses} total expense{totalExpenses === 1 ? '' : 's'}.
           </p>
         </header>
 
         {/* ── Summary Cards ── */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
           <SummaryCard
             label="Receivable"
             title="You Are Owed"
@@ -130,10 +130,17 @@ export default function Dashboard() {
             icon={<span className="material-symbols-outlined">call_made</span>}
           />
           <SummaryCard
-            label="Net Worth"
-            title="Net Balance"
-            amount={`Rs. ${Math.abs(netBalance).toFixed(2)}`}
-            icon={<span className="material-symbols-outlined">account_balance_wallet</span>}
+            label="Total"
+            title="Groups"
+            amount={`${groups.length}`}
+            icon={<span className="material-symbols-outlined">groups</span>}
+            variant="primary"
+          />
+          <SummaryCard
+            label="Total"
+            title="Expenses"
+            amount={`${totalExpenses}`}
+            icon={<span className="material-symbols-outlined">receipt_long</span>}
             variant="primary"
           />
         </section>

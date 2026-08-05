@@ -5,6 +5,8 @@ const userSchema = new Schema({
     username: {
         type: String,
         required: [true, "Username is required"],
+        maxlength: [15, "Username cannot exceed 15 characters"],
+        match: [/^[A-Z]/, "Username must start with an uppercase letter."],
         unique: true,
         trim: true,
         index: true
