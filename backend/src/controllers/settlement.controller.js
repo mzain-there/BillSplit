@@ -4,8 +4,12 @@ import Expense from "../models/expense.model.js"
 import User from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
+import { asynchandler } from "../utils/asynchandler.js"
 import { calculateBalances, simplifyDebts } from "../utils/calculateSplit.js"
 import { createNotifications } from "../utils/createNotification.js"
+import sendEmail from "../utils/sendEmail.js"
+import { debtReminderTemplate } from "../utils/emailTemplates.js"
+
 
 //Settle Up 
 
@@ -161,4 +165,32 @@ const getRemainingBalances = async (req, res, next) => {
     }
 }
 
-export { settleUp, getGroupSettlements, getRemainingBalances }
+//Send Reminder Email
+const sendReminder = asynchandler(async (req, res) => {
+  const { owedByEmail, owedByName, amount } = req.body
+  const group = await Group.findById(req.params.groupId)
+
+  if (!group) {
+    throw new ApiError(404, "Group not found")
+  }
+
+  await sendEmail({
+    to: owedByEmail,
+    subject: `Reminder: You owe ${req.user.username} Rs. ${amount}`,
+    html: debtReminderTemplate({
+      reminderSenderName: req.user.username,
+      owedByName,
+      amount,
+      groupName: group.name,
+      groupId: group._id,
+      clientUrl: process.env.CLIENT_URL
+    })
+  })
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Reminder sent successfully")
+  )
+})
+
+
+export { settleUp, getGroupSettlements, getRemainingBalances, sendReminder }

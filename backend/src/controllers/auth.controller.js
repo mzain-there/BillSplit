@@ -5,6 +5,10 @@ import { asynchandler } from "../utils/asynchandler.js"
 import { generateTokens, setAuthCookies, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE } from "../utils/generateToken.js"
 import jwt from "jsonwebtoken"
 import uploadToCloudinary from "../utils/uploadToCloudinary.js"
+import sendEmail from "../utils/sendEmail.js"
+import { welcomeTemplate } from "../utils/emailTemplates.js"
+
+
 
 // Cookie options
 const cookieOptions = {
@@ -40,6 +44,17 @@ const registerUser = asynchandler(async (req, res) => {
 
   // Create user
   const user = await User.create({ username, email, password, avatar: avatarUrl })
+
+  // Send welcome email
+  try {
+  await sendEmail({
+    to: email,
+    subject: "Welcome to BillSplit! 🎉",
+    html: welcomeTemplate({ username })
+  })
+} catch (emailError) {
+  console.error("Welcome email failed:", emailError.message)
+}
 
   // Fetch created user without sensitive fields
   const createdUser = await User.findById(user._id).select(

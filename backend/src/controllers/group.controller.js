@@ -4,6 +4,9 @@ import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import uploadToCloudinary from "../utils/uploadToCloudinary.js"
 import { createNotifications } from "../utils/createNotification.js"
+import sendEmail from "../utils/sendEmail.js"
+import { groupInviteTemplate } from "../utils/emailTemplates.js"
+
 
 //Create Group 
 
@@ -153,6 +156,23 @@ const inviteMember = async (req, res, next) => {
       role: "member",
     })
     await group.save()
+
+  // Send invitation email
+  
+   try {
+   await sendEmail({
+    to: userToInvite.email,
+    subject: `${req.user.username} invited you to join ${group.name} on BillSplit!`,
+    html: groupInviteTemplate({
+      inviterName: req.user.username,
+      groupName: group.name,
+      groupId: group._id,
+      clientUrl: process.env.CLIENT_URL
+    })
+  })
+} catch (emailError) {
+  console.error("Invite email failed:", emailError.message)
+}
 
     // Add group to invited user's groups array
     await User.findByIdAndUpdate(userToInvite._id, {
