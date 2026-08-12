@@ -6,7 +6,8 @@ import { generateTokens, setAuthCookies, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX
 import jwt from "jsonwebtoken"
 import uploadToCloudinary from "../utils/uploadToCloudinary.js"
 import sendEmail from "../utils/sendEmail.js"
-import { welcomeTemplate } from "../utils/emailTemplates.js"
+import { welcomeTemplate, otpTemplate } from "../utils/emailTemplates.js"
+import generateOTP from "../utils/generateOTP.js"
 
 
 
@@ -16,19 +17,23 @@ const cookieOptions = {
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
 }
-
-// ── Register ────────────────────────────────────────
+//── Register User ────────────────────────────────────────
 const registerUser = asynchandler(async (req, res) => {
   const { username, email, password } = req.body
 
   // Validation
   if (!username || !email || !password) {
-    console.error("Registration validation failed. Received body:", req.body)
     const missingFields = []
     if (!username) missingFields.push("username")
     if (!email) missingFields.push("email")
     if (!password) missingFields.push("password")
     throw new ApiError(400, `All fields are required. Missing: ${missingFields.join(", ")}`)
+  }
+
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, "Invalid email format")
   }
 
   // Check if user exists
@@ -37,35 +42,148 @@ const registerUser = asynchandler(async (req, res) => {
     throw new ApiError(409, "Email already registered")
   }
 
+  // Upload avatar
   let avatarUrl = ""
-  if (req.file) {
+  if (req.file && req.file.buffer) {
     avatarUrl = await uploadToCloudinary(req.file.buffer, "avatars")
   }
 
-  // Create user
-  const user = await User.create({ username, email, password, avatar: avatarUrl })
+  // Generate OTP
+  const otp = generateOTP()
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
 
-  // Send welcome email
-  try {
-  await sendEmail({
-    to: email,
-    subject: "Welcome to BillSplit! 🎉",
-    html: welcomeTemplate({ username })
+  // Create user — unverified
+  const user = await User.create({
+    username,
+    email,
+    password,
+    avatar: avatarUrl,
+    isVerified: false,
+    otp,
+    otpExpiry
   })
-} catch (emailError) {
-  console.error("Welcome email failed:", emailError.message)
-}
 
-  // Fetch created user without sensitive fields
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  )
-  if (!createdUser) {
-    throw new ApiError(500, "User not created")
+  // Send OTP email
+  try {
+    await sendEmail({
+      to: email,
+      subject: "Verify your BillSplit account",
+      html: otpTemplate({ username, otp })
+    })
+  } catch (emailError) {
+    // Delete user if email fails
+    await User.findByIdAndDelete(user._id)
+    throw new ApiError(500, "Failed to send verification email. Please try again.")
   }
 
   return res.status(201).json(
-    new ApiResponse(201, createdUser, "User registered successfully")
+    new ApiResponse(201, { email }, "OTP sent to your email. Please verify.")
+  )
+})
+
+// ── Verify OTP ────────────────────────────────────────
+const verifyOTP = asynchandler(async (req, res) => {
+  const { email, otp } = req.body
+
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and OTP are required")
+  }
+
+  const user = await User.findOne({ email })
+  if (!user) {
+    throw new ApiError(404, "User not found")
+  }
+
+  // Check if already verified
+  if (user.isVerified) {
+    throw new ApiError(400, "Account already verified")
+  }
+
+  // Check OTP expiry
+  if (Date.now() > user.otpExpiry) {
+    throw new ApiError(400, "OTP has expired. Please register again.")
+  }
+
+  // Check OTP match
+  if (user.otp !== otp) {
+    throw new ApiError(400, "Invalid OTP. Please try again.")
+  }
+
+  // Activate account
+  user.isVerified = true
+  user.otp = null
+  user.otpExpiry = null
+  await user.save()
+
+  // Generate tokens — auto login after verification
+  const { accessToken, refreshToken } = generateTokens(res, user._id)
+
+  user.refreshToken = refreshToken
+  await user.save()
+
+  const verifiedUser = await User.findById(user._id).select(
+    "-password -refreshToken -otp -otpExpiry"
+  )
+
+  // Send welcome email
+  try {
+    await sendEmail({
+      to: email,
+      subject: "Welcome to BillSplit! 🎉",
+      html: welcomeTemplate({ username: user.username })
+    })
+  } catch (emailError) {
+    console.error("Welcome email failed:", emailError.message)
+  }
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 60 * 60 * 1000
+    })
+    .cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+    .json(new ApiResponse(200, verifiedUser, "Account verified successfully"))
+})
+
+// ── Resend OTP ────────────────────────────────────────
+const resendOTP = asynchandler(async (req, res) => {
+  const { email } = req.body
+
+  if (!email) {
+    throw new ApiError(400, "Email is required")
+  }
+
+  const user = await User.findOne({ email })
+  if (!user) {
+    throw new ApiError(404, "User not found")
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(400, "Account already verified")
+  }
+
+  // Generate new OTP
+  const otp = generateOTP()
+  user.otp = otp
+  user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
+  await user.save()
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: "Your new BillSplit verification code",
+      html: otpTemplate({ username: user.username, otp })
+    })
+  } catch (emailError) {
+    throw new ApiError(500, "Failed to send OTP. Please try again.")
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "New OTP sent successfully")
   )
 })
 
@@ -82,6 +200,11 @@ const loginUser = asynchandler(async (req, res) => {
   const user = await User.findOne({ email })
   if (!user) {
     throw new ApiError(404, "User not found")
+  }
+
+  // Login only needs this check
+  if (!user.isVerified) {
+  throw new ApiError(403, "Please verify your email before logging in")
   }
 
   // Check password
@@ -130,8 +253,16 @@ const loginUser = asynchandler(async (req, res) => {
     "-password -refreshToken"
   )
 
-  return res
+ return res
     .status(200)
+    .cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 60 * 60 * 1000
+    })
+    .cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
     .json(new ApiResponse(200, loggedInUser, statusMessage))
 })
 
@@ -321,5 +452,7 @@ export {
   updateProfile,
   changePassword,
   deactivateAccount,
-  requestDeleteAccount
+  requestDeleteAccount,
+  verifyOTP,
+  resendOTP
 }

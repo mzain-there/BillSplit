@@ -8,7 +8,9 @@ import {
   updateProfile,
   changePassword,
   deactivateAccount,
-  requestDeleteAccount
+  requestDeleteAccount,
+  verifyOTP,
+  resendOTP
 } from "../controllers/auth.controller.js"
 import verifyJWT from "../middlewares/auth.middleware.js"
 import upload from "../middlewares/multer.middleware.js"
@@ -31,5 +33,9 @@ router.put("/change-password", verifyJWT, changePassword)
 // Deactivate & Delete Account
 router.post("/deactivate-account", verifyJWT, deactivateAccount)
 router.post("/delete-account", verifyJWT, requestDeleteAccount)
+
+// Public routes
+router.post("/verify-otp", verifyOTP)
+router.post("/resend-otp", resendOTP)
 
 export default router

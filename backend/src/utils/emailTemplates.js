@@ -171,3 +171,14 @@ export const resetPasswordTemplate = ({ username, resetUrl }) => {
     </html>
   `
 }
+
+export const otpTemplate = ({ username, otp }) => {
+  return `
+    <p>Hi ${username},</p>
+    <p>Your BillSplit verification code is:</p>
+    <h1 style="font-size: 48px; font-weight: 800; color: #6366F1; text-align: center; letter-spacing: 8px;">${otp}</h1>
+    <p>This code expires in <b>10 minutes.</b></p>
+    <p>If you didn't create a BillSplit account — ignore this email.</p>
+    <p>Thanks,<br/>BillSplit Team</p>
+  `
+}

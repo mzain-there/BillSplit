@@ -10,6 +10,7 @@ import Profile from './pages/Profile'
 import Notifications from './pages/Notifications'
 import { useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import VerifyOTP from './pages/VerifyOTP'
 
 export default function App() {
   const { user, loading } = useAuth()
