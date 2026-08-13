@@ -8,6 +8,9 @@ import uploadToCloudinary from "../utils/uploadToCloudinary.js"
 import sendEmail from "../utils/sendEmail.js"
 import { welcomeTemplate, otpTemplate } from "../utils/emailTemplates.js"
 import generateOTP from "../utils/generateOTP.js"
+import crypto from "crypto"
+import { resetPasswordTemplate } from "../utils/emailTemplates.js"
+
 
 
 
@@ -320,6 +323,105 @@ const refreshAccessToken = asynchandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Access token refreshed successfully"))
 })
 
+// ── Forgot Password ───────────────────────────────────
+const forgotPassword = asynchandler(async (req, res) => {
+  const { email } = req.body
+
+  if (!email) {
+    throw new ApiError(400, "Email is required")
+  }
+
+  const user = await User.findOne({ email })
+  if (!user) {
+    throw new ApiError(404, "No user found with this email")
+  }
+
+  // Generate reset token
+  const resetToken = crypto.randomBytes(32).toString("hex")
+
+  // Hash before saving to DB
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex")
+
+  // Save to user
+  user.resetPasswordToken = hashedToken
+  user.resetPasswordExpiry = Date.now() + 10 * 60 * 1000 // 10 minutes
+  await user.save()
+
+  // Reset URL
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`
+
+  // Send email
+  try {
+    await sendEmail({
+      to: email,
+      subject: "BillSplit Password Reset Request",
+      html: resetPasswordTemplate({
+        username: user.username,
+        resetUrl
+      })
+    })
+  } catch (emailError) {
+    // Clear token if email fails
+    user.resetPasswordToken = null
+    user.resetPasswordExpiry = null
+    await user.save()
+    throw new ApiError(500, "Failed to send reset email. Please try again.")
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Password reset link sent to your email")
+  )
+})
+
+// ── Reset Password ────────────────────────────────────
+const resetPassword = asynchandler(async (req, res) => {
+  const { token } = req.params
+  const { password } = req.body
+
+  if (!password) {
+    throw new ApiError(400, "Password is required")
+  }
+
+  // Match your user model validation
+  if (password.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters long")
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+  if (!passwordRegex.test(password)) {
+    throw new ApiError(400, "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")
+  }
+
+  // Hash token from URL
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex")
+
+  // Find user with valid token
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpiry: { $gt: Date.now() }
+  })
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired reset token")
+  }
+
+  // Update password
+  user.password = password
+  user.resetPasswordToken = null
+  user.resetPasswordExpiry = null
+  await user.save()
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Password reset successfully. Please login.")
+  )
+})
+
 // ── Get Current User ─────────────────────────────────
 const getCurrentUser = asynchandler(async (req, res) => {
   return res
@@ -361,19 +463,23 @@ const updateProfile = async (req, res, next) => {
 } 
 
 // ── Changing Password ────────────────────────────────────
-
 const changePassword = asynchandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body
 
   if (!currentPassword || !newPassword) {
-    throw new ApiError(400, "Current password and new password are required")
+    throw new ApiError(400, "Both fields are required")
+  }
+
+  if (newPassword.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters long")
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+  if (!passwordRegex.test(newPassword)) {
+    throw new ApiError(400, "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")
   }
 
   const user = await User.findById(req.user._id)
-  if (!user) {
-    throw new ApiError(404, "User not found")
-  }
-
   const isMatch = await user.matchPassword(currentPassword)
   if (!isMatch) {
     throw new ApiError(401, "Current password is incorrect")
@@ -454,5 +560,7 @@ export {
   deactivateAccount,
   requestDeleteAccount,
   verifyOTP,
-  resendOTP
+  resendOTP,
+  resetPassword,
+  forgotPassword
 }

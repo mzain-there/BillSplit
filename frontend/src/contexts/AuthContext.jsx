@@ -26,10 +26,11 @@ export function AuthProvider({ children }) {
 
   // Register
   const register = async (formData) => {
-    const res = await axiosInstance.post('/auth/register', formData)
-    setUser(res.data.data)
-    return res.data
-  }
+  const res = await axiosInstance.post('/auth/register', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return res.data  // user set only after OTP verification
+}
 
   // Login
   const login = async (email, password) => {

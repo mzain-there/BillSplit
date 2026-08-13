@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
+
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -143,8 +144,8 @@ export default function Login() {
                     <input className="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary/20" type="checkbox" />
                     Remember me
                   </label>
-                  <a className="text-primary hover:underline transition-all font-bold" href="#">Forgot Password?</a>
-                </div>
+                 <Link className="text-primary hover:underline" to="/forgot-password">Forgot Password?</Link>
+                 </div>
 
                 <div className="space-y-4 pt-2">
                   <button

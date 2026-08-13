@@ -11,6 +11,8 @@ import Notifications from './pages/Notifications'
 import { useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import VerifyOTP from './pages/VerifyOTP'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
   const { user, loading } = useAuth()
@@ -27,14 +29,11 @@ export default function App() {
   return (
     <Routes>
       {/* Public routes — redirect to dashboard if already logged in */}
-      <Route
-        path="/login"
-        element={!user ? <Login /> : <Navigate to="/dashboard" replace />}
-      />
-      <Route
-        path="/register"
-        element={!user ? <Register /> : <Navigate to="/dashboard" replace />}
-      />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />}/>
+      <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />}/>
+      <Route path="/verify-otp" element={<VerifyOTP />}/>
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} /> 
 
       {/* Protected routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

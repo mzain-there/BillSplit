@@ -10,7 +10,9 @@ import {
   deactivateAccount,
   requestDeleteAccount,
   verifyOTP,
-  resendOTP
+  resendOTP,
+  forgotPassword,
+  resetPassword
 } from "../controllers/auth.controller.js"
 import verifyJWT from "../middlewares/auth.middleware.js"
 import upload from "../middlewares/multer.middleware.js"
@@ -21,6 +23,8 @@ const router = express.Router()
 router.post("/register",upload.single("avatar"), registerUser)
 router.post("/login", loginUser)
 router.post("/refresh-token", refreshAccessToken)
+router.post("/forgot-password", forgotPassword)
+router.post("/reset-password/:token", resetPassword)
 
 // Protected routes — token required
 router.post("/logout", verifyJWT, logoutUser)

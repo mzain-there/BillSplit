@@ -1,26 +1,37 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import axiosInstance from '../api/axios'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function VerifyOTP() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { setUser } = useAuth()
   const email = location.state?.email || ''
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [timer, setTimer] = useState(600) // 10 minutes
+  const [timer, setTimer] = useState(600)       // OTP expiry countdown
+  const [resendTimer, setResendTimer] = useState(60) // Resend cooldown
 
-  // Countdown timer
+  // OTP expiry countdown
   useEffect(() => {
     const interval = setInterval(() => {
       setTimer(prev => {
-        if (prev <= 0) {
-          clearInterval(interval)
-          return 0
-        }
+        if (prev <= 0) { clearInterval(interval); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setResendTimer(prev => {
+        if (prev <= 0) { clearInterval(interval); return 0 }
         return prev - 1
       })
     }, 1000)
@@ -33,20 +44,16 @@ export default function VerifyOTP() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  // Handle OTP input
   const handleOtpChange = (index, value) => {
     if (value.length > 1) return
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
-
-    // Auto focus next input
     if (value && index < 5) {
       document.getElementById(`otp-${index + 1}`).focus()
     }
   }
 
-  // Handle backspace
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       document.getElementById(`otp-${index - 1}`).focus()
@@ -66,12 +73,16 @@ export default function VerifyOTP() {
     }
 
     try {
-      await axiosInstance.post('/auth/verify-otp', {
+      const res = await axiosInstance.post('/auth/verify-otp', {
         email,
         otp: otpString
       })
+
+      // Set user in AuthContext
+      setUser(res.data.data)
       setSuccess('Account verified successfully!')
       setTimeout(() => navigate('/dashboard'), 1500)
+
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP')
     } finally {
@@ -82,9 +93,12 @@ export default function VerifyOTP() {
   const handleResend = async () => {
     try {
       await axiosInstance.post('/auth/resend-otp', { email })
-      setTimer(600)
-      setSuccess('New OTP sent!')
+      setResendTimer(60) // Reset resend cooldown
+      setTimer(600)      // Reset OTP expiry
+      setSuccess('New OTP sent to your email!')
       setError('')
+      setOtp(['', '', '', '', '', '']) // Clear OTP inputs
+      document.getElementById('otp-0').focus()
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to resend OTP')
     }
@@ -129,7 +143,7 @@ export default function VerifyOTP() {
             ))}
           </div>
 
-          {/* Timer */}
+          {/* OTP Expiry Timer */}
           <p className="text-center text-on-surface-variant font-body-md mb-6">
             Code expires in{' '}
             <span className={`font-bold ${timer < 60 ? 'text-red-500' : 'text-primary'}`}>
@@ -140,9 +154,9 @@ export default function VerifyOTP() {
           <button
             className="w-full bg-primary text-on-primary font-label-md py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow mb-4"
             type="submit"
-            disabled={loading}
+            disabled={loading || timer === 0}
           >
-            {loading ? 'Verifying...' : 'Verify Account'}
+            {loading ? 'Verifying...' : timer === 0 ? 'OTP Expired' : 'Verify Account'}
           </button>
         </form>
 
@@ -152,17 +166,31 @@ export default function VerifyOTP() {
             Didn't receive the code?{' '}
             <button
               onClick={handleResend}
-              disabled={timer > 0}
+              disabled={resendTimer > 0}
               className={`font-bold transition-all ${
-                timer > 0
+                resendTimer > 0
                   ? 'text-outline cursor-not-allowed'
                   : 'text-primary hover:underline cursor-pointer'
               }`}
             >
-              {timer > 0 ? `Resend in ${formatTime(timer)}` : 'Resend OTP'}
+              {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
             </button>
           </p>
         </div>
+
+        {/* OTP Expired Message */}
+        {timer === 0 && (
+          <div className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 font-body-md text-sm text-center">
+            OTP expired. Please{' '}
+            <button
+              onClick={() => navigate('/register')}
+              className="font-bold underline"
+            >
+              register again
+            </button>
+            {' '}or resend OTP.
+          </div>
+        )}
       </div>
     </div>
   )

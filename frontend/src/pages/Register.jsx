@@ -48,22 +48,18 @@ export default function Register() {
       return
     }
 
-    try {
-      const data = new FormData()
-      data.append('username', formData.username)
-      data.append('email', formData.email)
-      data.append('password', formData.password)
-      if (avatar) data.append('avatar', avatar)
+   try {
+    const data = new FormData()
+    data.append('username', formData.username)
+    data.append('email', formData.email)
+    data.append('password', formData.password)
+    if (avatar) data.append('avatar', avatar)
 
-      await register(data)
+    await register(data)
 
-      const overlay = document.getElementById('successOverlay')
-      if (overlay) {
-        overlay.classList.remove('opacity-0', 'pointer-events-none')
-        overlay.classList.add('opacity-100')
-        setTimeout(() => navigate('/dashboard'), 2500)
-      }
-    } catch (err) {
+  // Redirect to OTP verification page with email
+    navigate('/verify-otp', { state: { email: formData.email } })
+  } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
     } finally {
       setLoading(false)
