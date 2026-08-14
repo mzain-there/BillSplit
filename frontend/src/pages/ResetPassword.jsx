@@ -11,6 +11,27 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const hasValidToken = typeof token === 'string' && token.trim() !== '' && token !== 'undefined'
+
+  if (!hasValidToken) {
+    return (
+      <div className="bg-background text-on-background min-h-screen flex items-center justify-center font-body-md">
+        <div className="w-full max-w-md glass-card rounded-[32px] p-8 md:p-12 primary-glow text-center">
+          <h2 className="font-headline-lg text-on-surface mb-4">Invalid Reset Link</h2>
+          <p className="font-body-md text-on-surface-variant mb-6">
+            This password reset link is missing or invalid. Please request a new one.
+          </p>
+          <button
+            className="w-full bg-primary text-on-primary font-bold py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow"
+            onClick={() => navigate('/forgot-password')}
+          >
+            Back to Forgot Password
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')

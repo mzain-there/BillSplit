@@ -351,7 +351,8 @@ const forgotPassword = asynchandler(async (req, res) => {
   await user.save()
 
   // Reset URL
-  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`
+  const frontendBaseUrl = process.env.CLIENT_URL || "http://localhost:5173"
+  const resetUrl = `${frontendBaseUrl}/reset-password/${resetToken}`
 
   // Send email
   try {
@@ -380,6 +381,10 @@ const forgotPassword = asynchandler(async (req, res) => {
 const resetPassword = asynchandler(async (req, res) => {
   const { token } = req.params
   const { password } = req.body
+
+  if (!token || token === "undefined") {
+    throw new ApiError(400, "Invalid or missing reset token")
+  }
 
   if (!password) {
     throw new ApiError(400, "Password is required")
