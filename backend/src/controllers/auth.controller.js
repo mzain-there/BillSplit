@@ -1,4 +1,5 @@
 import User from "../models/user.model.js"
+import PendingUser from "../models/pendingUser.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import { asynchandler } from "../utils/asynchandler.js"
@@ -39,13 +40,19 @@ const registerUser = asynchandler(async (req, res) => {
     throw new ApiError(400, "Invalid email format")
   }
 
-  // Check if user exists
+  // Check if user is already registered in main User collection
   const existingUser = await User.findOne({ email })
   if (existingUser) {
-    throw new ApiError(409, "Email already registered")
+    throw new ApiError(409, "Email is already registered")
   }
 
-  // Upload avatar
+  // Check if username is taken in main User collection
+  const existingUsername = await User.findOne({ username })
+  if (existingUsername) {
+    throw new ApiError(409, "Username is already taken")
+  }
+
+  // Upload avatar if provided
   let avatarUrl = ""
   if (req.file && req.file.buffer) {
     avatarUrl = await uploadToCloudinary(req.file.buffer, "avatars")
@@ -55,16 +62,25 @@ const registerUser = asynchandler(async (req, res) => {
   const otp = generateOTP()
   const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
 
-  // Create user — unverified
-  const user = await User.create({
-    username,
-    email,
-    password,
-    avatar: avatarUrl,
-    isVerified: false,
-    otp,
-    otpExpiry
-  })
+  // Dev log for easy local testing
+  console.log(`\n========================================`)
+  console.log(`🔑 [OTP GENERATED] Email: ${email} | OTP: ${otp}`)
+  console.log(`========================================\n`)
+
+  // Save pending registration in PendingUser (NOT in main User collection)
+  await PendingUser.findOneAndUpdate(
+    { email },
+    {
+      username,
+      email,
+      password,
+      avatar: avatarUrl,
+      otp,
+      otpExpiry,
+      createdAt: new Date()
+    },
+    { upsert: true, new: true }
+  )
 
   // Send OTP email
   try {
@@ -74,9 +90,9 @@ const registerUser = asynchandler(async (req, res) => {
       html: otpTemplate({ username, otp })
     })
   } catch (emailError) {
-    // Delete user if email fails
-    await User.findByIdAndDelete(user._id)
-    throw new ApiError(500, "Failed to send verification email. Please try again.")
+    // Delete pending record if email sending fails completely
+    await PendingUser.deleteOne({ email })
+    throw new ApiError(500, `Failed to send verification email: ${emailError.message}`)
   }
 
   return res.status(201).json(
@@ -92,31 +108,40 @@ const verifyOTP = asynchandler(async (req, res) => {
     throw new ApiError(400, "Email and OTP are required")
   }
 
-  const user = await User.findOne({ email })
-  if (!user) {
-    throw new ApiError(404, "User not found")
+  // Check if already registered in main User collection
+  const existingUser = await User.findOne({ email })
+  if (existingUser) {
+    throw new ApiError(400, "Account is already registered and verified")
   }
 
-  // Check if already verified
-  if (user.isVerified) {
-    throw new ApiError(400, "Account already verified")
+  // Find in PendingUser collection
+  const pendingUser = await PendingUser.findOne({ email })
+  if (!pendingUser) {
+    throw new ApiError(404, "Invalid request or OTP has expired. Please register again.")
   }
 
   // Check OTP expiry
-  if (Date.now() > user.otpExpiry) {
+  if (!pendingUser.otpExpiry || Date.now() > new Date(pendingUser.otpExpiry).getTime()) {
+    await PendingUser.deleteOne({ email })
     throw new ApiError(400, "OTP has expired. Please register again.")
   }
 
   // Check OTP match
-  if (user.otp !== otp) {
+  if (pendingUser.otp !== otp) {
     throw new ApiError(400, "Invalid OTP. Please try again.")
   }
 
-  // Activate account
-  user.isVerified = true
-  user.otp = null
-  user.otpExpiry = null
-  await user.save()
+  // Create permanent user in main User collection ONLY AFTER successful OTP verification
+  const user = await User.create({
+    username: pendingUser.username,
+    email: pendingUser.email,
+    password: pendingUser.password, // Mongoose pre('save') hook will hash this password
+    avatar: pendingUser.avatar,
+    isVerified: true
+  })
+
+  // Clean up temporary pending user document
+  await PendingUser.deleteOne({ email })
 
   // Generate tokens — auto login after verification
   const { accessToken, refreshToken } = generateTokens(res, user._id)
@@ -160,33 +185,39 @@ const resendOTP = asynchandler(async (req, res) => {
     throw new ApiError(400, "Email is required")
   }
 
-  const user = await User.findOne({ email })
-  if (!user) {
-    throw new ApiError(404, "User not found")
+  const existingUser = await User.findOne({ email })
+  if (existingUser) {
+    throw new ApiError(400, "Account already registered and verified")
   }
 
-  if (user.isVerified) {
-    throw new ApiError(400, "Account already verified")
+  const pendingUser = await PendingUser.findOne({ email })
+  if (!pendingUser) {
+    throw new ApiError(404, "No pending registration found for this email. Please register again.")
   }
 
   // Generate new OTP
   const otp = generateOTP()
-  user.otp = otp
-  user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
-  await user.save()
+  pendingUser.otp = otp
+  pendingUser.otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
+  pendingUser.createdAt = new Date()
+  await pendingUser.save()
+
+  console.log(`\n========================================`)
+  console.log(`🔑 [RESEND OTP GENERATED] Email: ${email} | OTP: ${otp}`)
+  console.log(`========================================\n`)
 
   try {
     await sendEmail({
       to: email,
       subject: "Your new BillSplit verification code",
-      html: otpTemplate({ username: user.username, otp })
+      html: otpTemplate({ username: pendingUser.username, otp })
     })
   } catch (emailError) {
-    throw new ApiError(500, "Failed to send OTP. Please try again.")
+    throw new ApiError(500, `Failed to send OTP: ${emailError.message}`)
   }
 
   return res.status(200).json(
-    new ApiResponse(200, {}, "New OTP sent successfully")
+    new ApiResponse(200, { email }, "New OTP sent successfully")
   )
 })
 

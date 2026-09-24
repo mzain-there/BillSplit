@@ -7,7 +7,7 @@ export default function VerifyOTP() {
   const navigate = useNavigate()
   const location = useLocation()
   const { setUser } = useAuth()
-  const email = location.state?.email || ''
+  const [email, setEmail] = useState(location.state?.email || '')
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
@@ -65,6 +65,12 @@ export default function VerifyOTP() {
     setError('')
     setLoading(true)
 
+    if (!email) {
+      setError('Please enter your email address')
+      setLoading(false)
+      return
+    }
+
     const otpString = otp.join('')
     if (otpString.length !== 6) {
       setError('Please enter all 6 digits')
@@ -91,6 +97,10 @@ export default function VerifyOTP() {
   }
 
   const handleResend = async () => {
+    if (!email) {
+      setError('Please enter your email address to resend OTP')
+      return
+    }
     try {
       await axiosInstance.post('/auth/resend-otp', { email })
       setResendTimer(60) // Reset resend cooldown
@@ -98,7 +108,7 @@ export default function VerifyOTP() {
       setSuccess('New OTP sent to your email!')
       setError('')
       setOtp(['', '', '', '', '', '']) // Clear OTP inputs
-      document.getElementById('otp-0').focus()
+      document.getElementById('otp-0')?.focus()
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to resend OTP')
     }
@@ -109,9 +119,22 @@ export default function VerifyOTP() {
       <div className="w-full max-w-md glass-card rounded-[32px] p-8 md:p-12 primary-glow">
         <div className="mb-10 text-center">
           <h2 className="font-headline-lg text-on-surface mb-2">Verify Your Email</h2>
-          <p className="font-body-md text-on-surface-variant">
-            We sent a 6 digit code to <b>{email}</b>
-          </p>
+          {email ? (
+            <p className="font-body-md text-on-surface-variant">
+              We sent a 6 digit code to <b>{email}</b>
+            </p>
+          ) : (
+            <div className="mt-3 text-left">
+              <label className="text-xs font-bold text-on-surface mb-1 block">Email Address</label>
+              <input
+                type="email"
+                placeholder="Enter your registered email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-sm outline-none focus:border-primary"
+              />
+            </div>
+          )}
         </div>
 
         {success && (

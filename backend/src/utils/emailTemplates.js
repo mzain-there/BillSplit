@@ -174,11 +174,39 @@ export const resetPasswordTemplate = ({ username, resetUrl }) => {
 
 export const otpTemplate = ({ username, otp }) => {
   return `
-    <p>Hi ${username},</p>
-    <p>Your BillSplit verification code is:</p>
-    <h1 style="font-size: 48px; font-weight: 800; color: #6366F1; text-align: center; letter-spacing: 8px;">${otp}</h1>
-    <p>This code expires in <b>10 minutes.</b></p>
-    <p>If you didn't create a BillSplit account — ignore this email.</p>
-    <p>Thanks,<br/>BillSplit Team</p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Inter, Arial, sans-serif; background: #F8F7FF; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(99,102,241,0.08); }
+        .header { background: linear-gradient(135deg, #6366F1, #10B981); padding: 36px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 28px; }
+        .body { padding: 36px; text-align: center; }
+        .otp-box { font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #6366F1; background: #F8F7FF; padding: 18px 24px; border-radius: 12px; margin: 24px auto; display: inline-block; border: 1px border #E5E7EB; }
+        .body p { color: #374151; font-size: 16px; line-height: 1.6; }
+        .footer { background: #F8F7FF; padding: 20px; text-align: center; color: #9CA3AF; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>💸 BillSplit Verification</h1>
+        </div>
+        <div class="body">
+          <h2>Verify Your Email Address</h2>
+          <p>Hi <b>${username}</b>, thank you for signing up for BillSplit!</p>
+          <p>Your 6-digit verification code is:</p>
+          <div class="otp-box">${otp}</div>
+          <p>This verification code is valid for <b>10 minutes</b>.</p>
+          <p style="color: #9CA3AF; font-size: 14px; margin-top: 24px;">If you didn't create a BillSplit account, you can safely ignore this email.</p>
+        </div>
+        <div class="footer">
+          <p>© 2026 BillSplit. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
   `
 }
