@@ -12,7 +12,8 @@ import {
   verifyOTP,
   resendOTP,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  googleAuth
 } from "../controllers/auth.controller.js"
 import verifyJWT from "../middlewares/auth.middleware.js"
 import upload from "../middlewares/multer.middleware.js"
@@ -22,6 +23,7 @@ const router = express.Router()
 // Public routes — no token needed
 router.post("/register",upload.single("avatar"), registerUser)
 router.post("/login", loginUser)
+router.post("/google", googleAuth)
 router.post("/refresh-token", refreshAccessToken)
 router.post("/forgot-password", forgotPassword)
 router.post("/reset-password/:token", resetPassword)

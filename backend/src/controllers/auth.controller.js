@@ -11,6 +11,9 @@ import { welcomeTemplate, otpTemplate } from "../utils/emailTemplates.js"
 import generateOTP from "../utils/generateOTP.js"
 import crypto from "crypto"
 import { resetPasswordTemplate } from "../utils/emailTemplates.js"
+import { OAuth2Client } from "google-auth-library"
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 
 
@@ -32,6 +35,11 @@ const registerUser = asynchandler(async (req, res) => {
     if (!email) missingFields.push("email")
     if (!password) missingFields.push("password")
     throw new ApiError(400, `All fields are required. Missing: ${missingFields.join(", ")}`)
+  }
+
+  // Username length validation
+  if (username.trim().length < 5 || username.trim().length > 30) {
+    throw new ApiError(400, "Username must be between 5 and 30 characters")
   }
 
   // Email format validation
@@ -585,6 +593,194 @@ const requestDeleteAccount = asynchandler(async (req, res) => {
     )
 })
 
+// ── Generate Unique Google Username ───────────────────
+const generateGoogleUsername = async (name, email) => {
+  let source = (name || (email ? email.split("@")[0] : "User")).trim()
+  let cleaned = source.replace(/[^a-zA-Z0-9]/g, "")
+  if (!cleaned) cleaned = "User"
+  cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+  let base = cleaned.slice(0, 15)
+  if (base.length < 5) {
+    base = `${base}User`.slice(0, 15)
+  }
+
+  let candidate = base
+  let existing = await User.findOne({ username: candidate })
+  if (!existing) return candidate
+
+  for (let i = 0; i < 15; i++) {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString()
+    candidate = `${base.slice(0, 20)}${randomSuffix}`.slice(0, 30)
+    existing = await User.findOne({ username: candidate })
+    if (!existing) return candidate
+  }
+
+  return `User${Date.now().toString().slice(-7)}`
+}
+
+// ── Google Auth (Sign in / Sign up) ────────────────────
+const googleAuth = asynchandler(async (req, res) => {
+  const { credential, token, accessToken, mode = "login" } = req.body
+  const receivedToken = token || accessToken
+
+  if (!credential && !receivedToken) {
+    throw new ApiError(400, "Google credential or token is required")
+  }
+
+  let googleUser = null
+
+  // 1. Verify via ID Token (credential) if provided
+  if (credential) {
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID
+      })
+      googleUser = ticket.getPayload()
+    } catch (err) {
+      console.error("verifyIdToken error:", err.message)
+      throw new ApiError(401, "Invalid Google ID token")
+    }
+  } 
+  // 2. Verify via Access Token (from useGoogleLogin) if provided
+  else if (receivedToken) {
+    try {
+      const googleRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${receivedToken}` }
+      })
+      if (!googleRes.ok) {
+        throw new Error(`Google responded with status ${googleRes.status}`)
+      }
+      googleUser = await googleRes.json()
+    } catch (err) {
+      console.error("Google userinfo fetch error:", err.message)
+      throw new ApiError(401, "Failed to authenticate with Google access token")
+    }
+  }
+
+  if (!googleUser || !googleUser.email) {
+    throw new ApiError(400, "Unable to retrieve Google user profile")
+  }
+
+  // Ensure Google email is verified by Google
+  if (googleUser.email_verified === false) {
+    throw new ApiError(403, "Your Google email address is not verified by Google.")
+  }
+
+  const email = googleUser.email.toLowerCase()
+  const googleId = googleUser.sub
+  const name = googleUser.name
+  const picture = googleUser.picture
+
+  // Check if user already exists in database
+  let user = await User.findOne({ email })
+
+  // Real-world flow: On Login page, user MUST already exist in DB
+  if (mode === "login" && !user) {
+    throw new ApiError(404, "No account found with this Google email. Please create an account first.")
+  }
+
+  // Real-world flow: On Register page, prevent duplicate account creation
+  if (mode === "register" && user) {
+    throw new ApiError(409, "An account with this email already exists. Please sign in instead.")
+  }
+
+  if (user) {
+    // Existing user: Link Google ID and sync avatar / verification if needed
+    if (!user.googleId) {
+      user.googleId = googleId
+    }
+    if (!user.avatar && picture) {
+      user.avatar = picture
+    }
+    user.isVerified = true
+
+    // Handle scheduled deletion or deactivation reactivation
+    let statusMessage = "Logged in successfully with Google"
+    if (user.isScheduledForDeletion) {
+      const now = new Date()
+      if (user.scheduledDeletionDate && now >= new Date(user.scheduledDeletionDate)) {
+        await User.findByIdAndDelete(user._id)
+        throw new ApiError(410, "Your 30-day deletion period has passed. Your account info has been permanently deleted.")
+      } else {
+        user.isScheduledForDeletion = false
+        user.isDeactivated = false
+        user.deletionRequestedAt = null
+        user.scheduledDeletionDate = null
+        statusMessage = "Welcome back! Account reactivated and deletion request canceled."
+      }
+    } else if (user.isDeactivated) {
+      user.isDeactivated = false
+      statusMessage = "Welcome back! Your temporarily deactivated account is now active."
+    }
+
+    // Generate tokens & cookies
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(res, user._id)
+    user.refreshToken = newRefreshToken
+    await user.save()
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    return res
+      .status(200)
+      .cookie("accessToken", newAccessToken, {
+        ...cookieOptions,
+        maxAge: 60 * 60 * 1000
+      })
+      .cookie("refreshToken", newRefreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      })
+      .json(new ApiResponse(200, loggedInUser, statusMessage))
+
+  } else {
+    // New user: Register with Google
+    const username = await generateGoogleUsername(name, email)
+
+    user = await User.create({
+      username,
+      email,
+      googleId,
+      authProvider: "google",
+      avatar: picture || "",
+      isVerified: true
+    })
+
+    // Clean up any pending unverified OTP record
+    await PendingUser.deleteOne({ email })
+
+    // Generate tokens & cookies
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(res, user._id)
+    user.refreshToken = newRefreshToken
+    await user.save()
+
+    // Send welcome email (non-blocking)
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Welcome to BillSplit! 🎉",
+        html: welcomeTemplate({ username: user.username })
+      })
+    } catch (emailError) {
+      console.error("Welcome email failed:", emailError.message)
+    }
+
+    const newUser = await User.findById(user._id).select("-password -refreshToken")
+
+    return res
+      .status(201)
+      .cookie("accessToken", newAccessToken, {
+        ...cookieOptions,
+        maxAge: 60 * 60 * 1000
+      })
+      .cookie("refreshToken", newRefreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      })
+      .json(new ApiResponse(201, newUser, "Account created and logged in with Google successfully"))
+  }
+})
+
 export {
   registerUser,
   loginUser,
@@ -598,5 +794,6 @@ export {
   verifyOTP,
   resendOTP,
   resetPassword,
-  forgotPassword
+  forgotPassword,
+  googleAuth
 }

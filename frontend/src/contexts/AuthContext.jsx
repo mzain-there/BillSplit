@@ -39,6 +39,14 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  // Google Login / Sign Up
+  const googleLogin = async (tokenData) => {
+    const payload = typeof tokenData === 'string' ? { token: tokenData } : tokenData
+    const res = await axiosInstance.post('/auth/google', payload)
+    setUser(res.data.data)
+    return res.data
+  }
+
   // Logout
   const logout = async () => {
     try {
@@ -73,7 +81,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, register, login, logout, deactivateAccount, deleteAccount }}>
+    <AuthContext.Provider value={{ user, setUser, loading, register, login, logout, googleLogin, deactivateAccount, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   )

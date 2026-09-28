@@ -1,20 +1,45 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useGoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Register() {
   const navigate = useNavigate()
-  const { register } = useAuth()
+  const { register, googleLogin } = useAuth()
 
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   })
   const [avatar, setAvatar] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  // ── Google OAuth Registration / Login ─────────────────
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setError('')
+      setGoogleLoading(true)
+      try {
+        await googleLogin({ token: tokenResponse.access_token, mode: 'register' })
+        navigate('/dashboard')
+      } catch (err) {
+        setError(err.response?.data?.message || 'Google sign-in failed. Please try again.')
+      } finally {
+        setGoogleLoading(false)
+      }
+    },
+    onError: (errorResponse) => {
+      console.error('Google Sign-In Error:', errorResponse)
+      setError('Google sign-in was cancelled or encountered an error.')
+    }
+  })
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -36,30 +61,55 @@ export default function Register() {
     setError('')
     setLoading(true)
 
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('Please fill in all fields')
       setLoading(false)
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (formData.username.trim().length < 5 || formData.username.trim().length > 30) {
+      setError('Full Name must be between 5 and 30 characters')
       setLoading(false)
       return
     }
 
-   try {
-    const data = new FormData()
-    data.append('username', formData.username)
-    data.append('email', formData.email)
-    data.append('password', formData.password)
-    if (avatar) data.append('avatar', avatar)
+    if (!/^[A-Z]/.test(formData.username.trim())) {
+      setError('Full Name must start with an uppercase letter')
+      setLoading(false)
+      return
+    }
 
-    await register(data)
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long')
+      setLoading(false)
+      return
+    }
 
-  // Redirect to OTP verification page with email
-    navigate('/verify-otp', { state: { email: formData.email } })
-  } catch (err) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+    if (!passwordRegex.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character')
+      setLoading(false)
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const data = new FormData()
+      data.append('username', formData.username.trim())
+      data.append('email', formData.email.trim())
+      data.append('password', formData.password)
+      if (avatar) data.append('avatar', avatar)
+
+      await register(data)
+
+      // Redirect to OTP verification page with email
+      navigate('/verify-otp', { state: { email: formData.email.trim() } })
+    } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
     } finally {
       setLoading(false)
@@ -114,19 +164,36 @@ export default function Register() {
 
             {/* ── Full Name Field Left-Aligned ── */}
             <div className="flex flex-col text-left">
-              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="username">
-                Full Name
-              </label>
-              <input
-                id="username"
-                type="text"
-                name="username"
-                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all placeholder:text-outline-variant/60"
-                placeholder="Cameron Williamson"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-bold text-on-surface tracking-wide" htmlFor="username">
+                  Full Name
+                </label>
+                <span className="text-xs font-semibold text-outline-variant">
+                  5-30 chars
+                </span>
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  id="username"
+                  type="text"
+                  name="username"
+                  minLength={5}
+                  maxLength={30}
+                  className="w-full text-left pl-4 pr-16 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
+                <span className={`absolute right-3.5 text-xs font-bold pointer-events-none select-none ${
+                  formData.username.length === 0
+                    ? 'text-outline-variant/60'
+                    : formData.username.length < 5
+                    ? 'text-amber-500'
+                    : 'text-primary'
+                }`}>
+                  {formData.username.length}/30
+                </span>
+              </div>
             </div>
 
             {/* ── Email Address Field Left-Aligned ── */}
@@ -138,8 +205,7 @@ export default function Register() {
                 id="email"
                 type="email"
                 name="email"
-                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all placeholder:text-outline-variant/60"
-                placeholder="cameron@billings.io"
+                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -151,19 +217,60 @@ export default function Register() {
               <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="password">
                 Security Password
               </label>
-              <input
-                id="password"
-                type="password"
-                name="password"
-                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all placeholder:text-outline-variant/60"
-                placeholder="••••••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative flex items-center">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  className="w-full text-left pl-4 pr-12 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute right-3.5 flex items-center justify-center text-outline-variant hover:text-on-surface transition-colors p-1 rounded-lg focus:outline-none"
+                  tabIndex={-1}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-symbols-outlined text-xl select-none">
+                    {showPassword ? "visibility" : "visibility_off"}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            <div className="pt-3">
+            {/* ── Confirm Password Field Left-Aligned ── */}
+            <div className="flex flex-col text-left">
+              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  className="w-full text-left pl-4 pr-12 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(prev => !prev)}
+                  className="absolute right-3.5 flex items-center justify-center text-outline-variant hover:text-on-surface transition-colors p-1 rounded-lg focus:outline-none"
+                  tabIndex={-1}
+                  title={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-symbols-outlined text-xl select-none">
+                    {showConfirmPassword ? "visibility" : "visibility_off"}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-3 space-y-4">
               <button
                 className="w-full bg-primary text-on-primary font-bold py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow flex items-center justify-center gap-2 text-lg shadow-xl shadow-primary/30"
                 type="submit"
@@ -171,6 +278,27 @@ export default function Register() {
               >
                 <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
                 {!loading && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
+              </button>
+
+              <div className="relative flex py-3 items-center">
+                <div className="flex-grow border-t border-outline-variant/40"></div>
+                <span className="flex-shrink mx-4 text-outline font-label-sm text-xs font-bold uppercase tracking-wider">OR</span>
+                <div className="flex-grow border-t border-outline-variant/40"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleGoogleLogin()}
+                disabled={loading || googleLoading}
+                className="w-full glass-card text-on-surface font-semibold py-3.5 rounded-2xl transition-all duration-300 ease-out hover:bg-surface-container-low flex items-center justify-center gap-3 border border-outline-variant/30 text-base shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+                </svg>
+                <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
               </button>
             </div>
           </form>

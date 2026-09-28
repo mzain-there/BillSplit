@@ -29,6 +29,7 @@ axiosInstance.interceptors.response.use(
         originalRequest.url?.includes('/auth/refresh-token') ||
         originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/register') ||
+        originalRequest.url?.includes('/auth/google') ||
         originalRequest.url?.includes('/auth/deactivate-account') ||
         originalRequest.url?.includes('/auth/delete-account')
 

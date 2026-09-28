@@ -5,7 +5,8 @@ const userSchema = new Schema({
     username: {
         type: String,
         required: [true, "Username is required"],
-        maxlength: [15, "Username cannot exceed 15 characters"],
+        minlength: [5, "Username must be at least 5 characters long"],
+        maxlength: [30, "Username cannot exceed 30 characters"],
         match: [/^[A-Z]/, "Username must start with an uppercase letter."],
         unique: true,
         trim: true,
@@ -19,9 +20,27 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        required: [true, "Password is required."],
-        minlength: [8, "Password must be at least 8 characters long."],
-        match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character."]
+        required: function () {
+            return !this.googleId
+        },
+        validate: {
+            validator: function (v) {
+                if (!v && this.googleId) return true
+                if (!v) return false
+                return v.length >= 8 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(v)
+            },
+            message: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+        }
+    },
+    googleId: {
+        type: String,
+        default: null,
+        index: true
+    },
+    authProvider: {
+        type: String,
+        enum: ["local", "google"],
+        default: "local"
     },
     avatar: {
         type: String,
@@ -77,11 +96,12 @@ const userSchema = new Schema({
 }, { timestamps: true })
 
 userSchema.pre("save", async function () {
-    if (!this.isModified("password")) return
+    if (!this.isModified("password") || !this.password) return
     this.password = await bcrypt.hash(this.password, 10)
 })
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
+    if (!this.password) return false
     return await bcrypt.compare(enteredPassword, this.password)
 }
 
