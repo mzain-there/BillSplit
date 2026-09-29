@@ -292,7 +292,24 @@ export default function GroupPage() {
                   <span className="material-symbols-outlined text-6xl text-green-500">check_circle</span>
                 </div>
                 <h3 className="text-xl font-bold text-green-500 mb-2">All Settled Up! 🎉</h3>
-                <p className="text-on-surface-variant">Everyone in this group is square. No outstanding balances.</p>
+                <p className="text-on-surface-variant">
+                  {expenses.length > 0
+                    ? 'All expenses in this group are settled. No outstanding balances.'
+                    : 'Everyone in this group is square. No outstanding balances.'}
+                </p>
+                {expenses.length > 0 && (
+                  <div className="flex justify-center gap-3 mt-6">
+                    <button
+                      className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-2.5 font-semibold text-primary hover:bg-primary/20 transition-colors"
+                      onClick={() => setTab('expenses')}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">receipt_long</span>
+                        View Expenses
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               balances.map((balance, index) => {
@@ -327,25 +344,33 @@ export default function GroupPage() {
             {settlements.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-outline-variant/40 p-10 text-center text-on-surface-variant">No settlement history yet.</div>
             ) : (
-              settlements.map((settlement) => (
-                <div key={settlement._id} className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
-                    <p className="font-semibold text-on-surface">
-                      {settlement.paidBy?._id === user?._id ? 'You' : settlement.paidBy?.username || 'Someone'}
-                      {' '}paid{' '}
-                      {settlement.paidTo?._id === user?._id ? 'you' : settlement.paidTo?.username || 'someone'}
-                    </p>
+              settlements.map((settlement) => {
+                const paidByName = settlement.paidBy?._id === user?._id ? 'You' : settlement.paidBy?.username || 'Someone'
+                const paidToName = settlement.paidTo?._id === user?._id ? 'you' : settlement.paidTo?.username || 'someone'
+                const settledDate = new Date(settlement.settledAt || settlement.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                const noteText = settlement.note && settlement.note.trim() !== '' ? settlement.note.trim() : null
+                return (
+                  <div key={settlement._id} className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
+                        <p className="font-semibold text-on-surface">
+                          {paidByName}{' '}paid{' '}{paidToName}
+                        </p>
+                      </div>
+                      <span className="font-bold text-green-500 text-sm whitespace-nowrap">{formatCurrency(settlement.amount)}</span>
+                    </div>
+                    {noteText && (
+                      <div className="mt-2 flex items-center gap-1.5 text-sm text-on-surface-variant">
+                        <span className="material-symbols-outlined text-sm text-outline">label</span>
+                        <span className="text-outline font-medium">For:</span>
+                        <span>{noteText}</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-on-surface-variant mt-2">{settledDate}</p>
                   </div>
-                  <p className="mt-1 text-on-surface-variant">
-                    <span className="font-bold text-green-500">{formatCurrency(settlement.amount)}</span>
-                    {settlement.note ? ` • ${settlement.note}` : ''}
-                  </p>
-                  <p className="text-xs text-on-surface-variant mt-1">
-                    {new Date(settlement.settledAt || settlement.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         )}
@@ -422,8 +447,17 @@ export default function GroupPage() {
                 <input className="w-full rounded-xl border border-outline-variant/40 bg-background px-4 py-3 outline-none focus:border-primary" min="0" onChange={(e) => setSettleAmount(e.target.value)} required type="number" value={settleAmount} />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold">Note</label>
-                <input className="w-full rounded-xl border border-outline-variant/40 bg-background px-4 py-3 outline-none focus:border-primary" onChange={(e) => setSettleNote(e.target.value)} placeholder="Optional note" value={settleNote} />
+                <label className="mb-2 block text-sm font-semibold">
+                  Expense name
+                  <span className="ml-1 font-normal text-on-surface-variant">(optional)</span>
+                </label>
+                <input
+                  className="w-full rounded-xl border border-outline-variant/40 bg-background px-4 py-3 outline-none focus:border-primary"
+                  onChange={(e) => setSettleNote(e.target.value)}
+                  placeholder="e.g. pizza, rent, trip..."
+                  value={settleNote}
+                />
+                <p className="mt-1.5 text-xs text-on-surface-variant">This will appear in History as &quot;For: pizza&quot;</p>
               </div>
               <div className="flex justify-end gap-3">
                 <button className="rounded-xl border border-outline-variant/40 px-4 py-3 font-semibold" onClick={() => setSettleModal({ open: false, balance: null })} type="button">Cancel</button>
