@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Bell, Receipt, CreditCard, UserPlus, BellRing, Check, ExternalLink } from 'lucide-react'
 import axiosInstance from '../api/axios'
 
-export default function NotificationsDropdown() {
+export default function NotificationsDropdown({ onClose }) {
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,21 +47,42 @@ export default function NotificationsDropdown() {
     markAsRead(notification._id)
     if (notification.metadata?.groupId) {
       navigate(`/groups/${notification.metadata.groupId}`)
+      if (onClose) onClose()
     }
   }
 
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'expense_added':
-        return { icon: 'receipt_long', color: 'text-blue-500', bg: 'bg-blue-500/10' }
+        return {
+          icon: <Receipt size={16} />,
+          bg: 'rgba(79, 70, 229, 0.12)',
+          color: 'var(--primary)',
+        }
       case 'settlement_made':
-        return { icon: 'payments', color: 'text-green-500', bg: 'bg-green-500/10' }
+        return {
+          icon: <CreditCard size={16} />,
+          bg: 'rgba(5, 150, 105, 0.12)',
+          color: 'var(--success)',
+        }
       case 'member_added':
-        return { icon: 'person_add', color: 'text-purple-500', bg: 'bg-purple-500/10' }
+        return {
+          icon: <UserPlus size={16} />,
+          bg: 'rgba(124, 58, 237, 0.12)',
+          color: 'var(--primary-2)',
+        }
       case 'payment_reminder':
-        return { icon: 'notifications_active', color: 'text-orange-500', bg: 'bg-orange-500/10' }
+        return {
+          icon: <BellRing size={16} />,
+          bg: 'rgba(245, 158, 11, 0.12)',
+          color: '#d97706',
+        }
       default:
-        return { icon: 'notifications', color: 'text-gray-500', bg: 'bg-gray-500/10' }
+        return {
+          icon: <Bell size={16} />,
+          bg: 'var(--soft)',
+          color: 'var(--muted)',
+        }
     }
   }
 
@@ -79,70 +101,209 @@ export default function NotificationsDropdown() {
   const unreadCount = notifications.filter(n => !n.isRead).length
 
   return (
-    <div className="w-96 max-h-[32rem] bg-surface border border-outline-variant/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+    <div
+      style={{
+        width: 360,
+        maxWidth: 'calc(100vw - 32px)',
+        maxHeight: '30rem',
+        background: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 18,
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+      }}
+    >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-outline-variant/30 bg-surface-container-low flex items-center justify-between">
-        <div>
-          <h3 className="font-headline-md text-lg font-bold text-on-surface">Notifications</h3>
+      <div
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--line)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--card)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
+            Notifications
+          </h3>
           {unreadCount > 0 && (
-            <p className="text-xs text-on-surface-variant">{unreadCount} unread</p>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 12,
+                background: 'var(--soft)',
+                color: 'var(--primary)',
+              }}
+            >
+              {unreadCount} new
+            </span>
           )}
         </div>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="text-xs text-primary font-semibold hover:underline"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary)',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
           >
+            <Check size={13} />
             Mark all read
           </button>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* List Content */}
+      <div style={{ flex: 1, overflowY: 'auto', maxHeight: '22rem' }}>
         {loading ? (
-          <div className="p-6 space-y-4">
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[1, 2, 3].map(i => (
-              <div key={i} className="animate-pulse flex gap-3">
-                <div className="w-10 h-10 bg-surface-container rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-surface-container rounded w-3/4" />
-                  <div className="h-3 bg-surface-container rounded w-1/2" />
+              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'var(--soft)',
+                    opacity: 0.6,
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      height: 12,
+                      background: 'var(--soft)',
+                      borderRadius: 6,
+                      width: '75%',
+                      marginBottom: 6,
+                      opacity: 0.6,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 10,
+                      background: 'var(--soft)',
+                      borderRadius: 6,
+                      width: '40%',
+                      opacity: 0.4,
+                    }}
+                  />
                 </div>
               </div>
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="p-10 text-center">
-            <span className="material-symbols-outlined text-6xl text-on-surface-variant/30 mb-3">notifications_off</span>
-            <p className="text-on-surface-variant">No notifications yet</p>
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'var(--soft)',
+                color: 'var(--muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Bell size={22} style={{ opacity: 0.6 }} />
+            </div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+              No notifications yet
+            </p>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+              Activity from your groups will show up here
+            </span>
           </div>
         ) : (
-          <div className="divide-y divide-outline-variant/20">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {notifications.map((notification) => {
               const { icon, color, bg } = getNotificationIcon(notification.type)
               return (
                 <div
                   key={notification._id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`px-6 py-4 cursor-pointer transition-colors ${
-                    notification.isRead ? 'bg-surface hover:bg-surface-container-low' : 'bg-primary/5 hover:bg-primary/10'
-                  }`}
+                  style={{
+                    padding: '14px 18px',
+                    display: 'flex',
+                    gap: 12,
+                    cursor: 'pointer',
+                    borderBottom: '1px solid var(--line)',
+                    background: notification.isRead ? 'transparent' : 'var(--soft)',
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = notification.isRead ? 'var(--soft)' : 'rgba(79, 70, 229, 0.15)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = notification.isRead ? 'transparent' : 'var(--soft)'
+                  }}
                 >
-                  <div className="flex gap-3">
-                    <div className={`w-10 h-10 ${bg} rounded-full flex items-center justify-center flex-shrink-0`}>
-                      <span className={`material-symbols-outlined text-lg ${color}`}>{icon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${notification.isRead ? 'text-on-surface-variant' : 'text-on-surface font-medium'}`}>
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-on-surface-variant">{timeAgo(notification.createdAt)}</p>
-                        {!notification.isRead && (
-                          <span className="w-2 h-2 bg-primary rounded-full" />
-                        )}
-                      </div>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: bg,
+                      color: color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 13,
+                        lineHeight: 1.4,
+                        fontWeight: notification.isRead ? 400 : 600,
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      {notification.message}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                        {timeAgo(notification.createdAt)}
+                      </span>
+                      {!notification.isRead && (
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: 'var(--primary)',
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -154,12 +315,35 @@ export default function NotificationsDropdown() {
 
       {/* Footer */}
       {notifications.length > 0 && (
-        <div className="px-6 py-3 border-t border-outline-variant/30 bg-surface-container-low">
+        <div
+          style={{
+            padding: '12px 20px',
+            borderTop: '1px solid var(--line)',
+            background: 'var(--card)',
+          }}
+        >
           <button
-            onClick={() => navigate('/notifications')}
-            className="w-full text-sm text-primary font-semibold hover:underline"
+            onClick={() => {
+              navigate('/notifications')
+              if (onClose) onClose()
+            }}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary)',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: 0,
+            }}
           >
-            View all notifications
+            <span>View all notifications</span>
+            <ExternalLink size={13} />
           </button>
         </div>
       )}

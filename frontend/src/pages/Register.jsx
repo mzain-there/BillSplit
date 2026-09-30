@@ -1,8 +1,156 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../contexts/AuthContext'
+import { Camera, Pencil } from 'lucide-react'
+import Logo from '../components/ui/Logo'
+import PasswordInput from '../components/ui/PasswordInput'
+import PrimaryButton from '../components/ui/PrimaryButton'
 
+/* ── Inline styles ───────────────────────────────────── */
+const page = {
+  minHeight: '100vh',
+  background: 'var(--bg)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  padding: '24px 20px',
+}
+
+const toggleWrap = {
+  position: 'fixed', top: 20, right: 20, zIndex: 50,
+}
+
+const card = {
+  background: 'var(--card)',
+  borderRadius: 22,
+  padding: '24px 28px',
+  boxShadow: 'var(--shadow)',
+  border: '1px solid var(--card-border)',
+  width: '100%',
+  maxWidth: 440,
+}
+
+const cardTitle = {
+  fontSize: 26,
+  fontWeight: 800,
+  color: 'var(--ink)',
+  margin: '0 0 2px',
+  textAlign: 'center',
+}
+
+const cardSub = {
+  fontSize: 14,
+  color: 'var(--muted)',
+  margin: '0 0 16px',
+  fontWeight: 500,
+  textAlign: 'center',
+}
+
+const labelStyle = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 700,
+  color: 'var(--ink)',
+  marginBottom: 6,
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px 16px',
+  background: 'var(--input-bg)',
+  border: '1.5px solid var(--line)',
+  borderRadius: 14,
+  fontSize: 15,
+  fontWeight: 500,
+  color: 'var(--ink)',
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  outline: 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+}
+
+const dividerRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  margin: '16px 0',
+}
+
+const dividerLine = {
+  flex: 1, height: 1, background: 'var(--line)',
+}
+
+const dividerLabel = {
+  fontSize: 12, fontWeight: 700, color: 'var(--divider-text)',
+  letterSpacing: '0.05em',
+}
+
+const googleBtn = {
+  width: '100%',
+  padding: '12px 24px',
+  borderRadius: 14,
+  border: '1.5px solid var(--google-btn-border)',
+  background: 'var(--google-btn-bg)',
+  color: 'var(--ink)',
+  fontSize: 15,
+  fontWeight: 600,
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 10,
+  transition: 'all 0.2s ease',
+}
+
+const footer = {
+  textAlign: 'center',
+  fontSize: 14,
+  color: 'var(--muted)',
+  marginTop: 16,
+  fontWeight: 500,
+}
+
+/* Avatar styles */
+const avatarWrap = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  marginBottom: 2,
+}
+
+const avatarCircle = {
+  width: 72,
+  height: 72,
+  borderRadius: '50%',
+  border: '2px dashed var(--primary)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  overflow: 'hidden',
+  position: 'relative',
+  background: 'var(--soft)',
+  transition: 'border-color 0.2s, background 0.2s',
+}
+
+const editBadge = {
+  position: 'absolute',
+  bottom: 2,
+  right: 2,
+  width: 24,
+  height: 24,
+  borderRadius: '50%',
+  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: '2px solid var(--card)',
+}
+
+/* ── Component ───────────────────────────────────────── */
 export default function Register() {
   const navigate = useNavigate()
   const { register, googleLogin } = useAuth()
@@ -20,6 +168,14 @@ export default function Register() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [isWide, setIsWide] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsWide(window.innerWidth >= 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // ── Google OAuth Registration / Login ─────────────────
   const handleGoogleLogin = useGoogleLogin({
@@ -116,225 +272,173 @@ export default function Register() {
     }
   }
 
+  // Char counter color
+  const charCount = formData.username.length
+  const counterColor = charCount === 0 ? 'var(--muted)' : charCount < 5 ? 'var(--danger)' : 'var(--success)'
+
   return (
-    <div className="bg-background text-on-background min-h-screen flex flex-col justify-between font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
-      
-      {/* ── Main Full-Spacious Centered Viewport Section (No Navbar) ── */}
-      <main className="flex-grow flex items-center justify-center w-full max-w-container-max mx-auto px-6 py-12 md:py-16">
-        <div className="w-full max-w-lg glass-card rounded-[36px] p-8 sm:p-10 md:p-12 primary-glow border-2 border-outline-variant/30 shadow-2xl">
-          
-          <div className="text-center mb-8 space-y-2">
-            <h2 className="font-headline-lg text-3xl sm:text-4xl font-bold text-on-surface tracking-tight">Create Account</h2>
-            <p className="font-body-md text-base text-on-surface-variant font-medium">Start splitting expenses effortlessly today.</p>
+    <div style={page}>
+
+      {/* Logo above card */}
+      <div style={{ marginBottom: 16 }}>
+        <Logo size={34} />
+      </div>
+
+      <div style={card} className="auth-page-enter">
+        <h2 style={cardTitle}>Create account</h2>
+        <p style={cardSub}>Start splitting expenses effortlessly.</p>
+
+        {/* Error */}
+        {error && (
+          <div style={{
+            padding: '12px 16px', borderRadius: 14, marginBottom: 16,
+            background: 'var(--error-bg)', border: '1px solid var(--error-border)',
+            color: 'var(--danger)', fontSize: 13, fontWeight: 600,
+          }}>
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-500 font-body-md text-sm font-semibold text-center">
-              {error}
-            </div>
-          )}
+        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          <form onSubmit={onSubmit} className="space-y-6 text-left">
-            
-            {/* ── Profile Picture Upload Directly Above Inputs ── */}
-            <div className="flex flex-col items-center justify-center pb-2">
-              <div
-                className="relative group cursor-pointer w-28 h-28 rounded-full border-2 border-dashed border-outline-variant/60 hover:border-primary group-hover:bg-primary-container/10 transition-all duration-300 flex flex-col items-center justify-center p-1 overflow-hidden shadow-md bg-surface-container-low/70"
-                onClick={() => document.getElementById('avatarInput').click()}
-              >
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  <div className="flex flex-col items-center text-outline group-hover:text-primary transition-colors">
-                    <span className="material-symbols-outlined text-4xl mb-0.5">add_a_photo</span>
-                    <span className="font-label-sm text-[11px] uppercase font-bold tracking-wider">Photo</span>
-                  </div>
-                )}
-              </div>
-              <p className="font-body-md text-sm text-on-surface-variant font-medium mt-2.5">Upload profile picture</p>
-              
-              <input
-                id="avatarInput"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-            </div>
-
-            {/* ── Full Name Field Left-Aligned ── */}
-            <div className="flex flex-col text-left">
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-bold text-on-surface tracking-wide" htmlFor="username">
-                  Full Name
-                </label>
-                <span className="text-xs font-semibold text-outline-variant">
-                  5-30 chars
-                </span>
-              </div>
-              <div className="relative flex items-center">
-                <input
-                  id="username"
-                  type="text"
-                  name="username"
-                  minLength={5}
-                  maxLength={30}
-                  className="w-full text-left pl-4 pr-16 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
-                  value={formData.username}
-                  onChange={handleChange}
-                  required
-                />
-                <span className={`absolute right-3.5 text-xs font-bold pointer-events-none select-none ${
-                  formData.username.length === 0
-                    ? 'text-outline-variant/60'
-                    : formData.username.length < 5
-                    ? 'text-amber-500'
-                    : 'text-primary'
-                }`}>
-                  {formData.username.length}/30
-                </span>
-              </div>
-            </div>
-
-            {/* ── Email Address Field Left-Aligned ── */}
-            <div className="flex flex-col text-left">
-              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="email">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* ── Security Password Field Left-Aligned ── */}
-            <div className="flex flex-col text-left">
-              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="password">
-                Security Password
-              </label>
-              <div className="relative flex items-center">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  className="w-full text-left pl-4 pr-12 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute right-3.5 flex items-center justify-center text-outline-variant hover:text-on-surface transition-colors p-1 rounded-lg focus:outline-none"
-                  tabIndex={-1}
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  <span className="material-symbols-outlined text-xl select-none">
-                    {showPassword ? "visibility" : "visibility_off"}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── Confirm Password Field Left-Aligned ── */}
-            <div className="flex flex-col text-left">
-              <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="confirmPassword">
-                Confirm Password
-              </label>
-              <div className="relative flex items-center">
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  className="w-full text-left pl-4 pr-12 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(prev => !prev)}
-                  className="absolute right-3.5 flex items-center justify-center text-outline-variant hover:text-on-surface transition-colors p-1 rounded-lg focus:outline-none"
-                  tabIndex={-1}
-                  title={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  <span className="material-symbols-outlined text-xl select-none">
-                    {showConfirmPassword ? "visibility" : "visibility_off"}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-3 space-y-4">
-              <button
-                className="w-full bg-primary text-on-primary font-bold py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow flex items-center justify-center gap-2 text-lg shadow-xl shadow-primary/30"
-                type="submit"
-                disabled={loading}
-              >
-                <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
-                {!loading && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
-              </button>
-
-              <div className="relative flex py-3 items-center">
-                <div className="flex-grow border-t border-outline-variant/40"></div>
-                <span className="flex-shrink mx-4 text-outline font-label-sm text-xs font-bold uppercase tracking-wider">OR</span>
-                <div className="flex-grow border-t border-outline-variant/40"></div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleGoogleLogin()}
-                disabled={loading || googleLoading}
-                className="w-full glass-card text-on-surface font-semibold py-3.5 rounded-2xl transition-all duration-300 ease-out hover:bg-surface-container-low flex items-center justify-center gap-3 border border-outline-variant/30 text-base shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
-                </svg>
-                <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-              </button>
-            </div>
-          </form>
-
-          <p className="mt-10 text-center font-body-md text-base text-on-surface-variant font-medium">
-            Already have an account?{' '}
-            <Link
-              to="/login"
-              className="text-primary font-bold hover:underline transition-all"
+          {/* Avatar upload */}
+          <div style={avatarWrap}>
+            <div
+              style={avatarCircle}
+              onClick={() => document.getElementById('avatarInput').click()}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary-2)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--primary)' }}
             >
-              Sign in
-            </Link>
-          </p>
-
-        </div>
-      </main>
-
-      {/* ── Footer ── */}
-      <footer className="w-full py-5 px-6 max-w-container-max mx-auto border-t border-outline-variant/10 text-xs text-outline flex justify-between items-center">
-        <p>© 2024 BillSplit Inc.</p>
-        <div className="flex gap-6">
-          <a className="hover:text-primary transition-colors font-medium" href="#">Privacy Policy</a>
-          <a className="hover:text-primary transition-colors font-medium" href="#">Terms of Service</a>
-          <a className="hover:text-primary transition-colors font-medium" href="#">Security</a>
-        </div>
-      </footer>
-
-      {/* Success Overlay */}
-      <div className="fixed inset-0 bg-surface/90 backdrop-blur-xl z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500" id="successOverlay">
-        <div className="text-center space-y-6 max-w-xs p-8 glass-card rounded-[32px] border border-primary/20">
-          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto animate-bounce">
-            <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: `"FILL" 1` }}>check_circle</span>
+              {avatarPreview ? (
+                <>
+                  <img src={avatarPreview} alt="avatar preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                  <div style={editBadge}>
+                    <Pencil size={12} color="#fff" />
+                  </div>
+                </>
+              ) : (
+                <Camera size={28} color="var(--primary)" strokeWidth={1.5} />
+              )}
+            </div>
+            <input
+              id="avatarInput"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
           </div>
-          <h2 className="font-headline-lg text-xl text-on-surface font-bold">Welcome to BillSplit</h2>
-          <p className="font-body-md text-sm text-on-surface-variant">Redirecting to your dashboard...</p>
-        </div>
+
+          {/* Full Name with live counter */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label htmlFor="username" style={{ ...labelStyle, marginBottom: 0 }}>Full Name</label>
+              <span style={{ fontSize: 12, fontWeight: 700, color: counterColor }}>{charCount}/30</span>
+            </div>
+            <input
+              id="username"
+              type="text"
+              name="username"
+              minLength={5}
+              maxLength={30}
+              value={formData.username}
+              onChange={handleChange}
+              required
+              autoComplete="name"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px var(--focus-ring)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none' }}
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label htmlFor="email" style={labelStyle}>Email</label>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              autoComplete="email"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px var(--focus-ring)' }}
+              onBlur={e => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none' }}
+            />
+          </div>
+
+          {/* Password row — 2 columns on desktop, stacked on mobile */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isWide ? '1fr 1fr' : '1fr',
+            gap: 16,
+          }}>
+            <PasswordInput
+              id="password"
+              name="password"
+              label="Password"
+              value={formData.password}
+              onChange={handleChange}
+              autoComplete="new-password"
+              showPassword={showPassword}
+              onToggleShow={() => setShowPassword(prev => !prev)}
+            />
+            <PasswordInput
+              id="confirmPassword"
+              name="confirmPassword"
+              label="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              autoComplete="new-password"
+              showPassword={showConfirmPassword}
+              onToggleShow={() => setShowConfirmPassword(prev => !prev)}
+            />
+          </div>
+
+          {/* Submit */}
+          <div style={{ marginTop: 4 }}>
+            <PrimaryButton loading={loading} disabled={loading}>
+              Create account
+            </PrimaryButton>
+          </div>
+
+          {/* Divider */}
+          <div style={dividerRow}>
+            <div style={dividerLine} />
+            <span style={dividerLabel}>or</span>
+            <div style={dividerLine} />
+          </div>
+
+          {/* Google */}
+          <button
+            type="button"
+            onClick={() => handleGoogleLogin()}
+            disabled={loading || googleLoading}
+            style={{
+              ...googleBtn,
+              ...(loading || googleLoading ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+            }}
+            onMouseEnter={e => { if (!loading && !googleLoading) e.currentTarget.style.background = 'var(--google-btn-hover)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--google-btn-bg)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+            </svg>
+            <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+          </button>
+        </form>
+
+        {/* Footer */}
+        <p style={footer}>
+          Already a member?{' '}
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )

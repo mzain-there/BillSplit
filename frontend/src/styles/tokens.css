@@ -1,0 +1,109 @@
+/* ── Plus Jakarta Sans ──────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ── Light theme (default) ─────────────────────────── */
+[data-theme="light"], :root {
+  --bg: #f6f5ff;
+  --card: #ffffff;
+  --ink: #12112b;
+  --muted: #6b6a8a;
+  --line: #e8e6fb;
+  --primary: #4f46e5;
+  --primary-2: #7c3aed;
+  --soft: #eeecff;
+  --success: #059669;
+  --danger: #e11d48;
+  --shadow: 0 8px 30px rgba(79,70,229,.10);
+  --card-border: rgba(79,70,229,.08);
+  --input-bg: #f6f5ff;
+  --google-btn-bg: #ffffff;
+  --google-btn-border: #e8e6fb;
+  --google-btn-hover: #f6f5ff;
+  --focus-ring: rgba(79,70,229,.20);
+  --checkbox-bg: #ffffff;
+  --showcase-bg: linear-gradient(145deg, #1a1145 0%, #0d0c2b 100%);
+  --notice-bg: rgba(245,158,11,.08);
+  --notice-border: rgba(245,158,11,.25);
+  --notice-text: #b45309;
+  --error-bg: rgba(225,29,72,.06);
+  --error-border: rgba(225,29,72,.18);
+  --divider-text: #9a98c2;
+}
+
+/* ── Dark theme ────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg: #0d0c1d;
+  --card: #171630;
+  --ink: #f1f0ff;
+  --muted: #9a98c2;
+  --line: #26244a;
+  --primary: #818cf8;
+  --primary-2: #a78bfa;
+  --soft: #211f45;
+  --success: #34d399;
+  --danger: #fb7185;
+  --shadow: 0 8px 30px rgba(0,0,0,.4);
+  --card-border: rgba(129,140,248,.10);
+  --input-bg: #1e1c3a;
+  --google-btn-bg: #1e1c3a;
+  --google-btn-border: #26244a;
+  --google-btn-hover: #26244a;
+  --focus-ring: rgba(129,140,248,.25);
+  --checkbox-bg: #1e1c3a;
+  --showcase-bg: linear-gradient(145deg, #0f0e28 0%, #06061a 100%);
+  --notice-bg: rgba(245,158,11,.10);
+  --notice-border: rgba(245,158,11,.20);
+  --notice-text: #fbbf24;
+  --error-bg: rgba(251,113,133,.08);
+  --error-border: rgba(251,113,133,.15);
+  --divider-text: #6b6a8a;
+}
+
+/* ── Base ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  margin: 0;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ── Animations ────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50%      { transform: translateY(-12px) rotate(-6deg); }
+}
+
+@keyframes floatCard2 {
+  0%, 100% { transform: translateY(0) rotate(4deg); }
+  50%      { transform: translateY(-10px) rotate(4deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.auth-page-enter {
+  animation: fadeSlideUp 0.35s ease-out both;
+}
+
+/* ── Reduced motion ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

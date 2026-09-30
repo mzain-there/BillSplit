@@ -2,8 +2,244 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../contexts/AuthContext'
+import Logo from '../components/ui/Logo'
+import PasswordInput from '../components/ui/PasswordInput'
+import PrimaryButton from '../components/ui/PrimaryButton'
 
+/* ── inline style objects ────────────────────────────── */
+const page = {
+  minHeight: '100vh',
+  background: 'var(--bg)',
+  display: 'flex',
+  flexDirection: 'column',
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  overflow: 'hidden',
+}
 
+const toggleWrap = {
+  position: 'fixed', top: 20, right: 20, zIndex: 50,
+}
+
+const mainDesktop = {
+  flex: 1,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '48px 40px',
+  width: '100%',
+  maxWidth: 1120,
+  margin: '0 auto',
+  gap: 64,
+}
+
+const leftCol = {
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  gap: 28,
+}
+
+const rightCol = {
+  width: 420,
+  minWidth: 380,
+  flexShrink: 0,
+}
+
+const card = {
+  background: 'var(--card)',
+  borderRadius: 24,
+  padding: 32,
+  boxShadow: 'var(--shadow)',
+  border: '1px solid var(--card-border)',
+}
+
+const h1Style = {
+  fontSize: 'clamp(34px, 5.4vw, 60px)',
+  fontWeight: 800,
+  letterSpacing: '-0.03em',
+  lineHeight: 1.08,
+  color: 'var(--ink)',
+  margin: 0,
+}
+
+const gradientText = {
+  background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+}
+
+const subText = {
+  fontSize: 16,
+  color: 'var(--muted)',
+  lineHeight: 1.6,
+  maxWidth: 420,
+  fontWeight: 500,
+}
+
+const cardTitle = {
+  fontSize: 26,
+  fontWeight: 800,
+  color: 'var(--ink)',
+  margin: '0 0 4px',
+}
+
+const cardSub = {
+  fontSize: 15,
+  color: 'var(--muted)',
+  margin: '0 0 24px',
+  fontWeight: 500,
+}
+
+const labelStyle = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 700,
+  color: 'var(--ink)',
+  marginBottom: 6,
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px 16px',
+  background: 'var(--input-bg)',
+  border: '1.5px solid var(--line)',
+  borderRadius: 14,
+  fontSize: 15,
+  fontWeight: 500,
+  color: 'var(--ink)',
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  outline: 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+}
+
+const rowBetween = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  fontSize: 13,
+  marginTop: 4,
+}
+
+const checkboxLabel = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  cursor: 'pointer',
+  color: 'var(--muted)',
+  fontWeight: 600,
+  fontSize: 13,
+}
+
+const checkboxInput = {
+  width: 16, height: 16, accentColor: 'var(--primary)',
+  borderRadius: 4,
+}
+
+const dividerRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  margin: '16px 0',
+}
+
+const dividerLine = {
+  flex: 1, height: 1, background: 'var(--line)',
+}
+
+const dividerLabel = {
+  fontSize: 12, fontWeight: 700, color: 'var(--divider-text)',
+  letterSpacing: '0.05em',
+}
+
+const googleBtn = {
+  width: '100%',
+  padding: '12px 24px',
+  borderRadius: 14,
+  border: '1.5px solid var(--google-btn-border)',
+  background: 'var(--google-btn-bg)',
+  color: 'var(--ink)',
+  fontSize: 15,
+  fontWeight: 600,
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 10,
+  transition: 'all 0.2s ease',
+}
+
+const footer = {
+  textAlign: 'center',
+  fontSize: 14,
+  color: 'var(--muted)',
+  marginTop: 24,
+  fontWeight: 500,
+}
+
+/* ── Showcase panel styles ─────────────────────────── */
+const showcasePanel = {
+  borderRadius: 26,
+  background: 'var(--showcase-bg)',
+  padding: 32,
+  position: 'relative',
+  overflow: 'hidden',
+  minHeight: 260,
+}
+
+const glassCardBase = {
+  borderRadius: 16,
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  padding: '18px 22px',
+  position: 'absolute',
+  border: '1px solid rgba(255,255,255,0.12)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+}
+
+const floatingCard1 = {
+  ...glassCardBase,
+  background: 'rgba(255,255,255,0.08)',
+  top: 32, left: 24, width: 220,
+  animation: 'floatCard 7s ease-in-out infinite',
+  transform: 'rotate(-6deg)',
+}
+
+const floatingCard2 = {
+  ...glassCardBase,
+  background: 'rgba(79,70,229,0.15)',
+  bottom: 28, right: 24, width: 180,
+  animation: 'floatCard2 6s ease-in-out infinite',
+  transform: 'rotate(4deg)',
+}
+
+const glow1 = {
+  position: 'absolute', width: 120, height: 120, borderRadius: '50%',
+  background: 'rgba(79,70,229,0.25)', filter: 'blur(50px)',
+  top: -20, right: 40, pointerEvents: 'none',
+}
+
+const glow2 = {
+  position: 'absolute', width: 100, height: 100, borderRadius: '50%',
+  background: 'rgba(124,58,237,0.20)', filter: 'blur(45px)',
+  bottom: -10, left: 30, pointerEvents: 'none',
+}
+
+const cardInnerTitle = {
+  color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: 700, marginBottom: 6,
+}
+
+const cardInnerAmount = {
+  color: '#ffffff', fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em',
+}
+
+const cardInnerSub = {
+  color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, marginTop: 4,
+}
+
+/* ── Component ───────────────────────────────────────── */
 export default function Login() {
   const { login, googleLogin } = useAuth()
   const navigate = useNavigate()
@@ -17,6 +253,15 @@ export default function Login() {
   const [notice, setNotice] = useState(location.state?.noticeMessage || '')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Responsive check
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 860)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // ── Google OAuth Login ────────────────────────────────
   const handleGoogleLogin = useGoogleLogin({
@@ -38,24 +283,6 @@ export default function Login() {
     }
   })
 
-  // ── Mouse hover glow effect ──────────────────────────
-  useEffect(() => {
-    const card = document.querySelector('.glass-card.primary-glow')
-    if (!card) return
-    const onMove = (e) => {
-      const rect = card.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
-      if (x > 0 && x < rect.width && y > 0 && y < rect.height) {
-        card.style.boxShadow = `${(x - rect.width / 2) / 16}px ${(y - rect.height / 2) / 16}px 40px -5px rgba(99, 102, 241, 0.3)`
-      } else {
-        card.style.boxShadow = ''
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-    return () => window.removeEventListener('mousemove', onMove)
-  }, [])
-
   // ── Submit Handler ───────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -72,169 +299,164 @@ export default function Login() {
   }
 
   return (
-    <div className="bg-background text-on-background min-h-screen flex flex-col justify-between font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
-      
-      {/* ── Main Full-Spacious Centered Viewport Section ── */}
-      <main className="flex-grow flex items-center justify-center w-full max-w-container-max mx-auto px-6 py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full max-w-7xl">
-          
-          {/* Left Column: Extra Bold Headline & VIP Illustration */}
-          <div className="lg:col-span-7 flex flex-col justify-center relative overflow-hidden text-left">
-            <div className="absolute -top-32 -left-32 w-[450px] h-[450px] bg-primary/15 rounded-full blur-[140px] pointer-events-none"></div>
-            
-            <div className="relative z-10 space-y-8">
-              <h1 className="font-display-xl text-5xl sm:text-6xl lg:text-7xl font-bold text-on-surface leading-[1.08] tracking-tight">
-                Split bills. <br />
-                <span className="text-primary italic font-extrabold">Not friendships.</span>
-              </h1>
-              
-              <p className="font-body-lg text-lg sm:text-xl text-on-surface-variant max-w-xl leading-relaxed font-medium">
-                Effortless expense sharing with high-end financial transparency. Designed for the modern era of collaborative living.
-              </p>
-              
-              {/* VIP Bill Separation Picture */}
-              <div className="relative w-full max-w-xl aspect-video rounded-[32px] overflow-hidden glass-card p-3.5 animate-float group border-2 border-primary/30 shadow-2xl">
-                <div
-                  className="w-full h-full bg-cover bg-center rounded-2xl group-hover:scale-105 transition-transform duration-700 ease-out"
-                  style={{ backgroundImage: `url('/vip_bill_split.png')` }}
-                  data-alt="VIP Bill Separation"
+    <div style={page}>
+
+      <main style={{
+        ...mainDesktop,
+        ...(isMobile ? { flexDirection: 'column', padding: '32px 20px', gap: 32 } : {}),
+      }} className="auth-page-enter">
+
+        {/* ── LEFT: Showcase Column ── */}
+        <div style={{
+          ...leftCol,
+          ...(isMobile ? { paddingRight: 0, alignItems: 'center', textAlign: 'center' } : {}),
+        }}>
+          <Logo size={36} />
+
+          <h1 style={h1Style}>
+            Split bills.<br />
+            <span style={gradientText}>Not friendships.</span>
+          </h1>
+
+          <p style={{ ...subText, ...(isMobile ? { maxWidth: 340, margin: '0 auto' } : {}) }}>
+            Shared expenses with total clarity. Track, split and settle with your people — in real time.
+          </p>
+
+          {/* Showcase visual — hidden on mobile */}
+          {!isMobile && (
+            <div style={showcasePanel}>
+              <div style={glow1} />
+              <div style={glow2} />
+              <div style={floatingCard1}>
+                <div style={cardInnerTitle}>Dinner split</div>
+                <div style={cardInnerAmount}>Rs. 10,000</div>
+                <div style={cardInnerSub}>4 people</div>
+              </div>
+              <div style={floatingCard2}>
+                <div style={cardInnerTitle}>Your share</div>
+                <div style={{ ...cardInnerAmount, fontSize: 20 }}>Rs. 2,500</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── RIGHT: Form Card ── */}
+        <div style={isMobile ? { width: '100%', maxWidth: 420 } : rightCol}>
+          <div style={card}>
+            <h2 style={cardTitle}>Welcome back</h2>
+            <p style={cardSub}>Enter your credentials to continue.</p>
+
+            {/* Notice */}
+            {notice && (
+              <div style={{
+                padding: '12px 16px', borderRadius: 14, marginBottom: 16,
+                background: 'var(--notice-bg)', border: '1px solid var(--notice-border)',
+                color: 'var(--notice-text)', fontSize: 13, fontWeight: 600,
+              }}>
+                {notice}
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div style={{
+                padding: '12px 16px', borderRadius: 14, marginBottom: 16,
+                background: 'var(--error-bg)', border: '1px solid var(--error-border)',
+                color: 'var(--danger)', fontSize: 13, fontWeight: 600,
+              }}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* Email */}
+              <div>
+                <label htmlFor="email" style={labelStyle}>Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  style={inputStyle}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'var(--primary)'
+                    e.target.style.boxShadow = '0 0 0 3px var(--focus-ring)'
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'var(--line)'
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Right Column: Grand Glass Form Card */}
-          <div className="lg:col-span-5 flex items-center justify-center">
-            <div className="w-full max-w-lg glass-card rounded-[36px] p-8 sm:p-10 md:p-12 primary-glow border-2 border-outline-variant/30 shadow-2xl">
-              
-              <div className="mb-8 text-left space-y-2">
-                <h2 className="font-headline-lg text-3xl sm:text-4xl font-bold text-on-surface tracking-tight">Welcome Back</h2>
-                <p className="font-body-md text-base text-on-surface-variant font-medium">Enter your credentials to continue splitting.</p>
+              {/* Password */}
+              <PasswordInput
+                id="password"
+                label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                showPassword={showPassword}
+                onToggleShow={() => setShowPassword(prev => !prev)}
+              />
+
+              {/* Remember / Forgot */}
+              <div style={rowBetween}>
+                <label style={checkboxLabel}>
+                  <input type="checkbox" style={checkboxInput} />
+                  Remember me
+                </label>
+                <Link to="/forgot-password" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                  Forgot password?
+                </Link>
               </div>
 
-              {/* Notice Message */}
-              {notice && (
-                <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-body-md text-sm font-medium leading-relaxed text-left">
-                  {notice}
-                </div>
-              )}
+              {/* Submit */}
+              <PrimaryButton loading={loading} disabled={loading}>
+                Sign in
+              </PrimaryButton>
 
-              {/* Error Message */}
-              {error && (
-                <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-500 font-body-md text-sm font-semibold text-left">
-                  {error}
-                </div>
-              )}
+              {/* Divider */}
+              <div style={dividerRow}>
+                <div style={dividerLine} />
+                <span style={dividerLabel}>or</span>
+                <div style={dividerLine} />
+              </div>
 
-              <form className="space-y-6 text-left" onSubmit={handleSubmit}>
-                
-                {/* ── Email Field Left-Aligned ── */}
-                <div className="flex flex-col text-left">
-                  <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="email">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    className="w-full text-left px-4 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+              {/* Google */}
+              <button
+                type="button"
+                onClick={() => handleGoogleLogin()}
+                disabled={loading || googleLoading}
+                style={{
+                  ...googleBtn,
+                  ...(loading || googleLoading ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+                }}
+                onMouseEnter={e => { if (!loading && !googleLoading) e.currentTarget.style.background = 'var(--google-btn-hover)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--google-btn-bg)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+              </button>
+            </form>
 
-                {/* ── Password Field Left-Aligned ── */}
-                <div className="flex flex-col text-left">
-                  <label className="text-sm font-bold text-on-surface mb-2 tracking-wide" htmlFor="password">
-                    Password
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      className="w-full text-left pl-4 pr-12 py-3.5 bg-surface-container-low/70 border border-outline-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base text-on-surface font-semibold outline-none transition-all"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(prev => !prev)}
-                      className="absolute right-3.5 flex items-center justify-center text-outline-variant hover:text-on-surface transition-colors p-1 rounded-lg focus:outline-none"
-                      tabIndex={-1}
-                      title={showPassword ? "Hide password" : "Show password"}
-                    >
-                      <span className="material-symbols-outlined text-xl select-none">
-                        {showPassword ? "visibility" : "visibility_off"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between font-label-sm text-sm pt-1">
-                  <label className="flex items-center gap-2.5 cursor-pointer text-on-surface-variant hover:text-primary font-medium transition-colors">
-                    <input className="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary/20" type="checkbox" />
-                    Remember me
-                  </label>
-                 <Link className="text-primary hover:underline" to="/forgot-password">Forgot Password?</Link>
-                 </div>
-
-                <div className="space-y-4 pt-2">
-                  <button
-                    className="w-full bg-primary text-on-primary font-bold py-4 rounded-2xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-95 primary-glow flex items-center justify-center gap-2 text-lg shadow-xl shadow-primary/30"
-                    type="submit"
-                    disabled={loading}
-                  >
-                    <span>{loading ? 'Signing in...' : 'Sign In'}</span>
-                    {!loading && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
-                  </button>
-
-                  <div className="relative flex py-3 items-center">
-                    <div className="flex-grow border-t border-outline-variant/40"></div>
-                    <span className="flex-shrink mx-4 text-outline font-label-sm text-xs font-bold uppercase tracking-wider">OR</span>
-                    <div className="flex-grow border-t border-outline-variant/40"></div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleGoogleLogin()}
-                    disabled={loading || googleLoading}
-                    className="w-full glass-card text-on-surface font-semibold py-3.5 rounded-2xl transition-all duration-300 ease-out hover:bg-surface-container-low flex items-center justify-center gap-3 border border-outline-variant/30 text-base shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
-                    </svg>
-                    <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-                  </button>
-                </div>
-              </form>
-
-              <p className="mt-10 text-center font-body-md text-base text-on-surface-variant font-medium">
-                Don't have an account?{' '}
-                <Link className="text-primary font-bold hover:underline" to="/register">
-                  Sign up for free
-                </Link>
-              </p>
-            </div>
+            {/* Footer */}
+            <p style={footer}>
+              Don't have an account?{' '}
+              <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>
+                Sign up free
+              </Link>
+            </p>
           </div>
-
         </div>
       </main>
-
-      {/* ── Footer ── */}
-      <footer className="w-full py-5 px-6 max-w-container-max mx-auto border-t border-outline-variant/10 text-xs text-outline flex justify-between items-center">
-        <p>© 2024 BillSplit Inc.</p>
-        <div className="flex gap-6">
-          <a className="hover:text-primary transition-colors font-medium" href="#">Privacy Policy</a>
-          <a className="hover:text-primary transition-colors font-medium" href="#">Terms of Service</a>
-          <a className="hover:text-primary transition-colors font-medium" href="#">Security</a>
-        </div>
-      </footer>
     </div>
   )
 }
