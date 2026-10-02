@@ -184,7 +184,8 @@ export default function Register() {
       setGoogleLoading(true)
       try {
         await googleLogin({ token: tokenResponse.access_token, mode: 'register' })
-        navigate('/dashboard')
+        sessionStorage.setItem('dynamicIslandActive', 'true')
+        navigate('/dashboard', { state: { justLoggedIn: true } })
       } catch (err) {
         setError(err.response?.data?.message || 'Google sign-in failed. Please try again.')
       } finally {

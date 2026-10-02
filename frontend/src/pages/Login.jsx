@@ -270,7 +270,8 @@ export default function Login() {
       setGoogleLoading(true)
       try {
         await googleLogin({ token: tokenResponse.access_token, mode: 'login' })
-        navigate('/dashboard')
+        sessionStorage.setItem('dynamicIslandActive', 'true')
+        navigate('/dashboard', { state: { justLoggedIn: true } })
       } catch (err) {
         setError(err.response?.data?.message || 'Google sign-in failed. Please try again.')
       } finally {
@@ -290,7 +291,8 @@ export default function Login() {
     setLoading(true)
     try {
       await login(email, password)
-      navigate('/dashboard')
+      sessionStorage.setItem('dynamicIslandActive', 'true')
+      navigate('/dashboard', { state: { justLoggedIn: true } })
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.')
     } finally {

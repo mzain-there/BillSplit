@@ -1,117 +1,103 @@
 import React from 'react'
 
-export default function SummaryCard({ icon, label, title, amount, variant = 'neutral' }) {
-  // Determine variant styling
-  let badgeBg = 'var(--soft)'
-  let badgeColor = 'var(--primary)'
-  let iconBg = 'rgba(79, 70, 229, 0.1)'
-  let iconColor = 'var(--primary)'
-  let amountColor = 'var(--ink)'
+/**
+ * SummaryCard - Clean, modern metric card supporting:
+ * label (14px muted), value (26px/800 bold), variant ('neutral' | 'owed' | 'owe' | 'primary')
+ */
+export default function SummaryCard({
+  icon,
+  label,
+  title,
+  value,
+  amount,
+  variant = 'neutral',
+}) {
+  const displayLabel = label || title || ''
+  const displayValue = value !== undefined ? value : amount !== undefined ? amount : '0'
 
-  if (variant === 'receivable' || variant === 'owed' || label?.toLowerCase().includes('receivable')) {
-    badgeBg = 'rgba(5, 150, 105, 0.12)'
-    badgeColor = 'var(--success)'
+  // Variant color definitions
+  let iconBg = 'var(--soft)'
+  let iconColor = 'var(--primary)'
+  let valueColor = 'var(--ink)'
+
+  if (variant === 'owed' || variant === 'receivable' || displayLabel.toLowerCase().includes('owed')) {
     iconBg = 'rgba(5, 150, 105, 0.12)'
     iconColor = 'var(--success)'
-    amountColor = 'var(--success)'
-  } else if (variant === 'payable' || variant === 'owe' || label?.toLowerCase().includes('payable')) {
-    badgeBg = 'rgba(225, 29, 72, 0.12)'
-    badgeColor = 'var(--danger)'
+    valueColor = 'var(--success)'
+  } else if (variant === 'owe' || variant === 'payable' || displayLabel.toLowerCase().includes('owe')) {
     iconBg = 'rgba(225, 29, 72, 0.12)'
     iconColor = 'var(--danger)'
-    amountColor = 'var(--danger)'
+    valueColor = 'var(--danger)'
   } else if (variant === 'primary') {
-    badgeBg = 'var(--soft)'
-    badgeColor = 'var(--primary)'
     iconBg = 'var(--soft)'
     iconColor = 'var(--primary)'
-    amountColor = 'var(--primary)'
+    valueColor = 'var(--primary)'
   }
 
   return (
     <div
       style={{
         background: 'var(--card)',
-        border: '1px solid var(--card-border)',
+        border: '1px solid var(--line)',
         borderRadius: 20,
-        padding: '24px 22px',
+        padding: '20px 22px',
         boxShadow: 'var(--shadow)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+        gap: 14,
+        transition: 'transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
         cursor: 'default',
-        position: 'relative',
-        overflow: 'hidden',
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-3px)'
-        e.currentTarget.style.borderColor = 'var(--primary)'
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.borderColor = '#c7c3f7'
       }}
-      onMouseLeave={e => {
+      onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.borderColor = 'var(--card-border)'
+        e.currentTarget.style.borderColor = 'var(--line)'
       }}
     >
-      {/* Top row: Icon & Label Badge */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            background: iconBg,
-            color: iconColor,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 22,
+            fontSize: 14,
+            fontWeight: 500,
+            color: 'var(--muted)',
           }}
         >
-          {icon}
-        </div>
-        {label && (
-          <span
+          {displayLabel}
+        </span>
+
+        {icon && (
+          <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              padding: '4px 10px',
-              borderRadius: 20,
-              background: badgeBg,
-              color: badgeColor,
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: iconBg,
+              color: iconColor,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {label}
-          </span>
+            {icon}
+          </div>
         )}
       </div>
 
-      {/* Title & Amount */}
-      <div>
-        <p
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: 'var(--muted)',
-            margin: '0 0 6px 0',
-          }}
-        >
-          {title}
-        </p>
-        <div
-          style={{
-            fontSize: 26,
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            color: amountColor,
-            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-            lineHeight: 1.15,
-          }}
-        >
-          {amount}
-        </div>
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 800,
+          color: valueColor,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.15,
+        }}
+      >
+        {displayValue}
       </div>
     </div>
   )

@@ -87,7 +87,8 @@ export default function VerifyOTP() {
       // Set user in AuthContext
       setUser(res.data.data)
       setSuccess('Account verified successfully!')
-      setTimeout(() => navigate('/dashboard'), 1500)
+      sessionStorage.setItem('dynamicIslandActive', 'true')
+      setTimeout(() => navigate('/dashboard', { state: { justLoggedIn: true } }), 1500)
 
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP')

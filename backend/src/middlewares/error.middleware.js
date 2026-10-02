@@ -2,7 +2,11 @@ const errorHandler = (err, req, res, next) => {
   const statusCode = err?.statusCode || 500
   const message = err?.message || "Internal Server Error"
 
-  console.error("Error occurred in middleware:", err)
+  // Only log unexpected internal server errors (500+) in terminal
+  // Expected client errors like 401 (token expired/missing during refresh) are normal operational responses
+  if (statusCode >= 500) {
+    console.error("Server Error:", err)
+  }
 
   return res.status(statusCode).json({
     success: false,

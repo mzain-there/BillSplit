@@ -291,9 +291,10 @@ export default function Dashboard() {
 
       <main
         style={{
-          maxWidth: 1120,
+          width: '100%',
+          maxWidth: 'min(1420px, calc(100% - 32px))',
           margin: '0 auto',
-          padding: '24px 16px 80px',
+          padding: '28px 16px 80px',
           boxSizing: 'border-box',
         }}
       >
@@ -998,7 +999,7 @@ export default function Dashboard() {
                   ))
                 ) : (
                   <>
-                    {groups.slice(0, 3).map((group) => {
+                    {groups.slice(0, 4).map((group) => {
                       const status = getGroupStatus(group._id)
                       const isOwe = status.type === 'owe'
                       const isSettled = status.type === 'settled'
@@ -1262,7 +1263,8 @@ export default function Dashboard() {
         .bento-grid {
           display: grid;
           grid-template-columns: repeat(12, 1fr);
-          gap: 16px;
+          gap: 18px;
+          width: 100%;
         }
 
         .bento-col-12 { grid-column: span 12; }

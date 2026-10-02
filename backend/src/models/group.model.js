@@ -8,7 +8,7 @@ const groupSchema = new Schema({
     },
     description: {
         type: String,
-        required: true
+        default: ""
     },
     createdBy: {
         type: Schema.Types.ObjectId,
